@@ -1,0 +1,23 @@
+# Woodpecker CI pipeline for ark-fleet. Lint only — there is no build.
+when:
+  - event: [push, pull_request]
+
+steps:
+  yamllint:
+    image: python:3.12-slim
+    commands:
+      - pip install --quiet yamllint
+      - yamllint .
+
+  ansible-lint:
+    image: python:3.12-slim
+    commands:
+      - apt-get update -qq && apt-get install -y --no-install-recommends git >/dev/null
+      - pip install --quiet ansible-core ansible-lint
+      - ansible-galaxy collection install community.general ansible.posix
+      - ansible-lint
+
+  shellcheck:
+    image: koalaman/shellcheck-alpine:stable
+    commands:
+      - shellcheck roles/gamectl/files/gamectl

@@ -1,0 +1,22 @@
+# ark-fleet netboot — proxyDHCP+TFTP (dnsmasq) and HTTP (nginx), Dockerized.
+# dnsmasq must use host networking to see DHCP broadcasts. nginx serves the
+# preseed on ${HTTP_PORT} (see .env) so it won't collide with Traefik.
+services:
+  dnsmasq:
+    build: .
+    container_name: netboot-dnsmasq
+    restart: unless-stopped
+    network_mode: host                 # required: raw DHCP broadcast visibility
+    cap_add: [NET_ADMIN, NET_RAW]
+    volumes:
+      - ./dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - ./tftp:/srv/tftp:ro
+
+  http:
+    image: nginx:stable-alpine
+    container_name: netboot-http
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./http:/usr/share/nginx/html:ro

@@ -1,0 +1,54 @@
+---
+- name: Deploy gamectl to /usr/local/bin
+  ansible.builtin.copy:
+    src: gamectl                       # vendored in roles/gamectl/files/
+    dest: /usr/local/bin/gamectl
+    mode: "0755"
+
+- name: Render /etc/gamectl.conf
+  ansible.builtin.template:
+    src: gamectl.conf.j2
+    dest: /etc/gamectl.conf
+    owner: root
+    group: root
+    mode: "0640"                       # contains ADMIN_PASSWORD
+  notify: sync instances
+
+# --- First install: creates arkserver user, /opt/ark tree, downloads the
+#     ~14GB server template. Guarded so it only runs once. ---
+- name: Check for existing server template
+  ansible.builtin.stat:
+    path: "{{ ark_root }}/template/ShooterGame/Binaries/Linux/ShooterGameServer"
+  register: ark_template
+
+- name: gamectl install (downloads server; long-running, first run only)
+  ansible.builtin.command: gamectl install
+  when: not ark_template.stat.exists
+  async: "{{ gamectl_install_timeout }}"
+  poll: 30
+  changed_when: true
+
+# --- Reconcile cluster mountpoint ownership now that arkserver exists ---
+- name: Fix cluster dir ownership (post-install)
+  ansible.builtin.file:
+    path: "{{ ark_root }}/cluster"
+    state: directory
+    owner: "{{ ark_user }}"
+    group: "{{ ark_user }}"
+  when: cluster_nfs_enabled | bool
+  failed_when: false
+
+# --- Create each instance defined for this host, then enable + start it ---
+- name: Create instances from template
+  ansible.builtin.command: "gamectl create {{ item.key }}"
+  args:
+    creates: "{{ ark_root }}/instances/{{ item.key }}/ShooterGame/Binaries/Linux/ShooterGameServer"
+  loop: "{{ ark_instances | dict2items }}"
+
+- name: Enable + start ark@<instance> units
+  ansible.builtin.systemd:
+    name: "ark@{{ item.key }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ ark_instances | dict2items }}"

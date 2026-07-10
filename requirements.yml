@@ -1,0 +1,5 @@
+---
+# ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: community.general      # ufw, make, timezone, debconf
+  - name: ansible.posix          # mount, firewalld/selinux helpers

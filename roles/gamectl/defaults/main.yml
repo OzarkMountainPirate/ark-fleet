@@ -1,0 +1,3 @@
+---
+# gamectl install downloads ~14GB; give it room.
+gamectl_install_timeout: 3600

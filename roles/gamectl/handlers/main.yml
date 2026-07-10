@@ -1,0 +1,4 @@
+---
+- name: sync instances
+  ansible.builtin.command: "gamectl sync all"
+  become: true

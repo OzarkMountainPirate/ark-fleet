@@ -1,0 +1,68 @@
+---
+- name: Set hostname from inventory
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Ensure hostname resolves locally
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ inventory_hostname }}"
+    state: present
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Base packages
+  ansible.builtin.apt:
+    name: [curl, rsync, htop, vim, unattended-upgrades, chrony]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Enable unattended security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: "0644"
+
+# --- Firewall: allow SSH + each instance's game/query ports (UDP). RCON stays
+#     LAN-only and is NOT opened here. ---
+- name: Install ufw
+  ansible.builtin.apt: { name: ufw, state: present }
+  when: manage_firewall | bool
+
+- name: Default deny incoming / allow outgoing
+  community.general.ufw: { direction: "{{ item.d }}", policy: "{{ item.p }}" }
+  loop:
+    - { d: incoming, p: deny }
+    - { d: outgoing, p: allow }
+  when: manage_firewall | bool
+
+- name: Allow SSH
+  community.general.ufw: { rule: allow, port: "22", proto: tcp }
+  when: manage_firewall | bool
+
+- name: Open game + query UDP ports for this host's instances
+  community.general.ufw:
+    rule: allow
+    proto: udp
+    port: "{{ item.value.split(' ')[1] }}:{{ (item.value.split(' ')[1] | int) + 1 }}"
+  loop: "{{ ark_instances | dict2items }}"
+  when: manage_firewall | bool
+  # opens GamePort and RawPort (GamePort+1). Query port opened below.
+
+- name: Open query UDP ports for this host's instances
+  community.general.ufw:
+    rule: allow
+    proto: udp
+    port: "{{ item.value.split(' ')[2] }}"
+  loop: "{{ ark_instances | dict2items }}"
+  when: manage_firewall | bool
+
+- name: Enable ufw
+  community.general.ufw: { state: enabled }
+  when: manage_firewall | bool

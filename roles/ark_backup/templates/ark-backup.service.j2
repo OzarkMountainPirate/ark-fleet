@@ -1,0 +1,15 @@
+[Unit]
+Description=ARK save-safe backup (gamectl backup) + off-box push
+After=network-online.target
+
+[Service]
+Type=oneshot
+# gamectl backup stops each instance around the archive (live copies corrupt
+# ARK saves), writes to {{ ark_root }}/bak, and prunes > BACKUP_KEEP_DAYS.
+{% for key in ark_instances.keys() %}
+ExecStart=/usr/local/bin/gamectl backup {{ key }}
+{% endfor %}
+{% if backup_push_enabled | bool %}
+# Push archives off-box to TrueNAS.
+ExecStart=/usr/bin/rsync -a --delete {{ ark_root }}/bak/ {{ backup_remote }}/{{ inventory_hostname }}/
+{% endif %}

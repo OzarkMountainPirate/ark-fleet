@@ -1,0 +1,9 @@
+# fetched / generated at setup time
+tftp/
+http/
+dnsmasq.conf          # rendered from dnsmasq.conf.tmpl by setup.sh
+# a filled standalone preseed (real key/hash) — keep it out of git.
+# The committed template lives at ../bootstrap/preseed.cfg
+preseed.cfg
+# live deployment config (copy from .env.example)
+.env

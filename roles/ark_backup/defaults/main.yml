@@ -1,0 +1,3 @@
+---
+backup_push_enabled: false
+backup_on_calendar: "*-*-* 04:30:00"

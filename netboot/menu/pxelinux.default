@@ -1,0 +1,12 @@
+# ark-fleet BIOS netboot menu. setup.sh substitutes __HTTP_HOST__.
+DEFAULT auto
+PROMPT 0
+TIMEOUT 30
+
+LABEL auto
+    KERNEL debian-installer/amd64/linux
+    APPEND auto=true priority=critical preseed/url=http://__HTTP_HOST__:__HTTP_PORT__/preseed.cfg initrd=debian-installer/amd64/initrd.gz vga=788 ---
+
+LABEL manual
+    KERNEL debian-installer/amd64/linux
+    APPEND initrd=debian-installer/amd64/initrd.gz ---

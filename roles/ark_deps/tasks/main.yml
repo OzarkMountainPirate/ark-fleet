@@ -1,0 +1,75 @@
+---
+# Debian 13 (trixie). gamectl's paths (/usr/games/steamcmd) match Debian's
+# steamcmd package, so the script itself is unchanged; only the package
+# sourcing differs from Ubuntu (non-free vs multiverse).
+
+- name: Enable i386 architecture (SteamCMD is 32-bit)
+  ansible.builtin.command: dpkg --add-architecture i386
+  register: add_arch
+  changed_when: "'already' not in (add_arch.stderr | default(''))"
+  failed_when: false
+
+# steamcmd lives in non-free on Debian. Add contrib/non-free/non-free-firmware
+# as a separate deb822 .sources file (apt merges it with the base sources).
+- name: Enable contrib/non-free components (deb822)
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/steamcmd-nonfree.sources
+    mode: "0644"
+    content: |
+      Types: deb
+      URIs: http://deb.debian.org/debian
+      Suites: {{ ansible_distribution_release }} {{ ansible_distribution_release }}-updates
+      Components: contrib non-free non-free-firmware
+      Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+  register: nonfree_src
+
+- name: Refresh apt cache after enabling non-free
+  ansible.builtin.apt:
+    update_cache: true
+  when: nonfree_src is changed
+
+- name: Pre-accept SteamCMD EULA (non-interactive)
+  ansible.builtin.debconf:
+    name: steamcmd
+    question: "steam/question"
+    value: "I AGREE"
+    vtype: select
+
+- name: Pre-accept SteamCMD license note
+  ansible.builtin.debconf:
+    name: steamcmd
+    question: "steam/license"
+    value: ""
+    vtype: note
+
+- name: Install ARK server dependencies
+  ansible.builtin.apt:
+    name:
+      - steamcmd
+      - lib32gcc-s1          # present on Debian 12+/13
+      - lib32stdc++6
+      - libc6:i386
+      - rsync
+      - ca-certificates
+    state: present
+    update_cache: true
+
+# --- mcrcon: build the one genuinely-maintained RCON client from source ---
+- name: Check for mcrcon
+  ansible.builtin.stat: { path: /usr/local/bin/mcrcon }
+  register: mcrcon_bin
+
+- name: Build + install mcrcon
+  when: not mcrcon_bin.stat.exists
+  block:
+    - name: Build deps for mcrcon
+      ansible.builtin.apt: { name: [git, gcc, make], state: present }
+    - name: Clone mcrcon
+      ansible.builtin.git:
+        repo: https://github.com/Tiiffi/mcrcon.git
+        dest: /usr/local/src/mcrcon
+        version: master
+    - name: Compile mcrcon
+      community.general.make: { chdir: /usr/local/src/mcrcon }
+    - name: Install mcrcon
+      community.general.make: { chdir: /usr/local/src/mcrcon, target: install }

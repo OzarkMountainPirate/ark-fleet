@@ -1,0 +1,19 @@
+---
+- name: Install backup service unit
+  ansible.builtin.template:
+    src: ark-backup.service.j2
+    dest: /etc/systemd/system/ark-backup.service
+    mode: "0644"
+
+- name: Install backup timer unit
+  ansible.builtin.template:
+    src: ark-backup.timer.j2
+    dest: /etc/systemd/system/ark-backup.timer
+    mode: "0644"
+
+- name: Enable + start backup timer
+  ansible.builtin.systemd:
+    name: ark-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -1,0 +1,18 @@
+---
+# ============================================================================
+# ark-fleet :: provision two Lenovo Tiny hosts into one ARK: SE cluster.
+#
+#   ansible-playbook site.yml                 # full run
+#   ansible-playbook site.yml --tags deps     # just dependencies
+#   ansible-playbook site.yml -l acheron      # one host
+#   ansible-playbook site.yml --check         # dry run
+# ============================================================================
+- name: Provision ARK fleet
+  hosts: ark_fleet
+  become: true
+  roles:
+    - { role: common,        tags: [common, base] }
+    - { role: ark_deps,      tags: [deps] }
+    - { role: cluster_mount, tags: [cluster, nfs] }
+    - { role: gamectl,       tags: [gamectl, ark] }
+    - { role: ark_backup,    tags: [backup] }

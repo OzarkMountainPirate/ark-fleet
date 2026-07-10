@@ -1,0 +1,18 @@
+---
+# COPY ME:  cp inventory/hosts.example.yml inventory/hosts.yml   (gitignored)
+# Two game hosts. Rename freely; set your real ansible_host IPs.
+# They form ONE ARK cluster (shared CLUSTER_ID + shared NFS cluster dir).
+all:
+  children:
+    ark_fleet:
+      hosts:
+        acheron:                       # Tiny #1
+          ansible_host: 192.168.1.21
+          ark_instances:
+            crystalisles: "CrystalIsles 7795 27060 27160"
+        cocytus:                       # Tiny #2
+          ansible_host: 192.168.1.22
+          ark_instances:
+            fjordur: "Fjordur 7799 27062 27162"
+      vars:
+        ansible_user: admin            # MUST match ADMIN_USER in netboot/.env

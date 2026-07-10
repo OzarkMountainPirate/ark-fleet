@@ -1,0 +1,8 @@
+---
+profile: basic
+exclude_paths:
+  - collections/
+  - .github/
+skip_list:
+  - command-instead-of-module   # dpkg/steamcmd/gamectl have no equivalent modules
+  - no-changed-when             # gamectl install is guarded by stat + async, not changed_when

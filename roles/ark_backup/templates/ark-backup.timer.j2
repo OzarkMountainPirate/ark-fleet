@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly ARK backup
+
+[Timer]
+OnCalendar={{ backup_on_calendar }}
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

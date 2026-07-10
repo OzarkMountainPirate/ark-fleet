@@ -1,0 +1,36 @@
+# ark-fleet netboot :: dnsmasq as proxyDHCP + TFTP.
+# Coexists with your pfSense DHCP — assigns NO IPs, only adds PXE boot info.
+# Needs host networking (see docker-compose.yml) to see DHCP broadcasts.
+
+# Not a DNS server.
+port=0
+
+# Log every DHCP/PXE exchange (docker compose logs -f dnsmasq) — leave on until
+# both Tinys have installed, it's the only way to debug PXE.
+log-dhcp
+
+# ProxyDHCP for the LAN. Subnet is rendered from LAN_SUBNET in .env by setup.sh.
+dhcp-range=__LAN_SUBNET__,proxy
+
+# --- Boot services --------------------------------------------------------
+# proxyDHCP quirk: dnsmasq IGNORES dhcp-boot in proxy mode; boot info must be
+# delivered via pxe-service (DHCP option 43). And deliberately NO pxe-prompt:
+# with a single matching pxe-service and no prompt, dnsmasq hands UEFI clients
+# the boot file directly instead of the legacy PXE boot menu, which many UEFI
+# firmwares can't speak (symptom: perfect DHCP/ACK cycles, zero TFTP, loop).
+#
+# CSA (client system architecture) does the matching:
+#   x86PC = arch 0 (legacy BIOS), BC_EFI = arch 7, x86-64_EFI = arch 9
+pxe-service=BC_EFI,"ark-fleet netboot",debian-installer/amd64/bootnetx64.efi
+pxe-service=x86-64_EFI,"ark-fleet netboot",debian-installer/amd64/bootnetx64.efi
+pxe-service=x86PC,"ark-fleet netboot",pxelinux.0
+
+# --- Installed-host suppression (server-side reinstall-loop guard) --------
+# Hosts listed in .env INSTALLED_MACS get tagged and IGNORED: no proxy offer,
+# so their firmware falls through to the next boot device (the local disk).
+# dhcp-host lines are appended below by setup.sh from INSTALLED_MACS.
+dhcp-ignore=tag:installed
+
+# --- TFTP ---
+enable-tftp
+tftp-root=/srv/tftp

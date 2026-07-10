@@ -1,0 +1,32 @@
+#############################################################
+## gamectl.conf — MANAGED BY ANSIBLE (ark-fleet). Do not edit by hand.
+## Host: {{ inventory_hostname }}   Rendered: {{ ansible_date_time.iso8601 | default('n/a') }}
+#############################################################
+
+## ---- Paths & identity ---------------------------------------------------
+ARK_ROOT="{{ ark_root }}"
+ARK_USER="{{ ark_user }}"
+STEAMCMD="/usr/games/steamcmd"
+STEAM_HOME="/home/{{ ark_user }}"
+
+## ---- Steam app IDs (do not change for ASE) ------------------------------
+ARK_APPID="{{ ark_appid }}"
+ARK_WORKSHOP_APPID="346110"
+
+## ---- Cluster & admin ----------------------------------------------------
+CLUSTER_ID="{{ cluster_id }}"
+ADMIN_PASSWORD="{{ admin_password }}"
+
+## ---- Mods ---------------------------------------------------------------
+MODS="{{ mods }}"
+
+## ---- Instances (this host only) -----------------------------------------
+## Format: [key]="MapName GamePort QueryPort RconPort"
+declare -A INSTANCES=(
+{% for key, spec in ark_instances.items() %}
+  [{{ key }}]="{{ spec }}"
+{% endfor %}
+)
+
+## ---- Backups ------------------------------------------------------------
+BACKUP_KEEP_DAYS="{{ backup_keep_days }}"

@@ -1,0 +1,42 @@
+---
+# ============================================================================
+# COPY ME:  cp group_vars/all.example.yml group_vars/all.yml   (gitignored)
+# Fleet-wide settings. Non-secret. Secrets live in group_vars/vault.yml
+# (ansible-vault) and are referenced here as vault_* .
+# ============================================================================
+
+# --- ARK / gamectl identity (shared across the cluster) ---------------------
+ark_root:        "/opt/ark"
+ark_user:        "arkserver"
+cluster_id:      "my-cluster"           # same on both hosts = transfers work
+ark_appid:       "376030"               # ASE dedicated server
+mods:            ""                      # comma-separated Workshop IDs, no spaces
+backup_keep_days: "14"
+
+# admin/RCON password pulled from the vault (see vault.example.yml)
+admin_password:  "{{ vault_admin_password }}"
+
+# --- Shared cluster directory over NFS (the load-bearing bit) ---------------
+# ARK stores cross-server transfer data in ARK_ROOT/cluster. On a multi-HOST
+# cluster that dir MUST be shared, or uploads on one map never appear on the
+# other. Served from your NAS / NFS server.
+#
+# PHASE ONE: off. Each host runs with a LOCAL cluster dir — both servers are
+# fully playable immediately; only cross-HOST character/creature transfers wait.
+# Flip to true (and set the export below) once the TrueNAS dataset exists, then
+# re-run: ansible-playbook site.yml --tags cluster,gamectl
+cluster_nfs_enabled: false
+cluster_nfs_server:  "192.168.1.15"                 # TrueNAS
+cluster_nfs_export:  "/mnt/tank/ark/cluster"        # dataset exported to the Tinys
+cluster_nfs_opts:    "rw,hard,noatime,vers=4"
+
+# --- Backups: push save archives off-box to TrueNAS -------------------------
+# PHASE ONE: local backups only. The timer still runs save-safe gamectl backup
+# into /opt/ark/bak; flip this true once TrueNAS is ready to also rsync off-box.
+backup_push_enabled: false
+backup_remote:       "192.168.1.15:/mnt/tank/ark/backups"   # rsync/NFS target
+backup_on_calendar:  "*-*-* 04:30:00"               # systemd OnCalendar, per host
+
+# --- Base hardening ---------------------------------------------------------
+manage_firewall: true
+timezone: "America/Chicago"

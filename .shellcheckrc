@@ -1,0 +1,7 @@
+# ark-fleet shellcheck config.
+# gamectl is a vendored upstream toolkit whose config vars are sourced at
+# runtime, which trips two advisory (info) checks that are false positives here:
+#   SC2153 — "CLUSTER_ID may not be assigned" (it's set in /etc/gamectl.conf)
+#   SC2012 — "use find instead of ls" (style; safe for our controlled filenames)
+# Real problems (warning/error) still fail. First-party scripts stay clean.
+disable=SC2153,SC2012

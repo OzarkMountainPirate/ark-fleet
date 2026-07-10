@@ -1,0 +1,33 @@
+---
+# Mount the SHARED cross-server transfer directory from TrueNAS at
+# {{ ark_root }}/cluster. Both Tinys mount the SAME export -> transfers work.
+- name: Skip cluster NFS when disabled
+  ansible.builtin.debug:
+    msg: "cluster_nfs_enabled is false — running as independent (non-transfer) servers"
+  when: not (cluster_nfs_enabled | bool)
+
+- name: NFS client + shared cluster mount
+  when: cluster_nfs_enabled | bool
+  block:
+    - name: Install NFS client
+      ansible.builtin.apt: { name: nfs-common, state: present }
+
+    - name: Ensure cluster mountpoint exists
+      ansible.builtin.file:
+        path: "{{ ark_root }}/cluster"
+        state: directory
+        owner: "{{ ark_user }}"
+        group: "{{ ark_user }}"
+        mode: "0775"
+      # NOTE: ark_user is created by 'gamectl install'. This role runs before
+      # gamectl, so on a first run the uid may not exist yet — the mount still
+      # works; ownership is reconciled by the gamectl role afterward.
+      failed_when: false
+
+    - name: Mount shared cluster dir (persistent)
+      ansible.posix.mount:
+        path: "{{ ark_root }}/cluster"
+        src: "{{ cluster_nfs_server }}:{{ cluster_nfs_export }}"
+        fstype: nfs
+        opts: "{{ cluster_nfs_opts }}"
+        state: mounted
