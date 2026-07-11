@@ -12,8 +12,29 @@
   become: true
   roles:
     - { role: common,        tags: [common, base] }
+    - { role: static_net,    tags: [network, static] }
     - { role: data_disk,     tags: [storage, disk] }
     - { role: ark_deps,      tags: [deps] }
     - { role: cluster_mount, tags: [cluster, nfs] }
     - { role: gamectl,       tags: [gamectl, ark] }
     - { role: ark_backup,    tags: [backup] }
+
+  post_tasks:
+    # static_net wrote the config but deliberately didn't apply it mid-play.
+    # Fire-and-forget reboot at the very end; the host comes back on its
+    # inventory IP. Do NOT use the reboot module here — it would wait for the
+    # host on the OLD address and hang.
+    - name: Reboot to apply static network config (fire-and-forget)
+      ansible.builtin.shell: sleep 3 && /sbin/reboot
+      async: 10
+      poll: 0
+      when: static_net_reboot_needed | default(false) | bool
+      tags: [network, static]
+
+    - name: Note the address change
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} is rebooting onto {{ static_net_ip }}.
+          Reconnect there; run ssh-keygen -R against any old address entry.
+      when: static_net_reboot_needed | default(false) | bool
+      tags: [network, static]

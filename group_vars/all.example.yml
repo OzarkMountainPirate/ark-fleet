@@ -16,6 +16,19 @@ backup_keep_days: "14"
 # admin/RCON password pulled from the vault (see vault.example.yml)
 admin_password:  "{{ vault_admin_password }}"
 
+# --- Static networking (optional) --------------------------------------------
+# Pins each host's IP from the inventory (static_net_ip defaults to that
+# host's ansible_host), eliminating DHCP-reservation dependence. Written by
+# the static_net role; applied by an end-of-play reboot. First run against a
+# freshly installed DHCP host:
+#   ansible-playbook site.yml -l acheron -e ansible_host=<current-dhcp-ip>
+static_net_enabled: true
+static_net_prefix: 24
+static_net_gateway: 192.168.1.1
+static_net_dns:
+  - 192.168.1.1
+static_net_search: lan.example.com
+
 # --- Dedicated data disk (optional) ------------------------------------------
 # Mounts a second disk at /opt so the ~40GB+ of ARK files (template, instances,
 # saves, local backups under /opt/ark) never fill the system disk. Example:

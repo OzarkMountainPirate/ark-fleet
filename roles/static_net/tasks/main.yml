@@ -1,0 +1,58 @@
+---
+# Pin the host's IP by writing static ifupdown config. The change is NOT
+# activated mid-play (that would sever the SSH connection) — a fire-and-forget
+# reboot in site.yml post_tasks applies it at the very end of the run.
+#
+# First run against a freshly installed (DHCP) host: target it at its current
+# address, e.g.  ansible-playbook site.yml -l acheron -e ansible_host=<dhcp-ip>
+# After the end-of-play reboot it lives at the inventory IP permanently.
+
+- name: Skip when static networking is disabled
+  ansible.builtin.debug:
+    msg: "static_net_enabled is false — host keeps DHCP"
+  when: not (static_net_enabled | bool)
+
+- name: Configure static networking
+  when: static_net_enabled | bool
+  block:
+    - name: Assert target IP and gateway look sane
+      ansible.builtin.assert:
+        that:
+          - static_net_ip is match('^([0-9]{1,3}\.){3}[0-9]{1,3}$')
+          - static_net_gateway is match('^([0-9]{1,3}\.){3}[0-9]{1,3}$')
+          - static_net_dns | length > 0
+        fail_msg: >-
+          static_net_ip ({{ static_net_ip }}) must be an IPv4 address (it
+          defaults to ansible_host — set static_net_ip explicitly if
+          ansible_host is a DNS name), static_net_gateway
+          ({{ static_net_gateway }}) must be set, and static_net_dns must be
+          a non-empty list.
+
+    - name: Detect the primary interface
+      ansible.builtin.set_fact:
+        static_net_iface: "{{ ansible_facts.default_ipv4.interface }}"
+
+    - name: Write static /etc/network/interfaces
+      ansible.builtin.template:
+        src: interfaces.j2
+        dest: /etc/network/interfaces
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+      register: static_net_ifcfg
+
+    - name: Write static /etc/resolv.conf
+      ansible.builtin.template:
+        src: resolv.conf.j2
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: "0644"
+      register: static_net_resolv
+
+    - name: Flag reboot when config changed and host is not yet on target IP
+      ansible.builtin.set_fact:
+        static_net_reboot_needed: >-
+          {{ (static_net_ifcfg is changed or static_net_resolv is changed)
+             and ansible_facts.default_ipv4.address != static_net_ip }}

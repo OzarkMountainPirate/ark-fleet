@@ -52,6 +52,7 @@ group_vars/all.yml       cluster id, appid, NFS + backup targets, hardening
 group_vars/vault.yml     ansible-vault: admin/RCON password (gitignored)
 site.yml                 the playbook
 roles/
+  static_net/            pins each host's IP from the inventory (no DHCP reservations)
   common/                hostname, base pkgs, unattended-upgrades, ufw (game/query UDP; RCON LAN-only)
   data_disk/             optional second disk (e.g. HDD) formatted + mounted at /opt
   ark_deps/              i386 multiarch, steamcmd (non-free), lib32gcc-s1, builds mcrcon
@@ -81,7 +82,8 @@ in [`bootstrap/README.md`](bootstrap/README.md) if you ever want it.)
 ## Quickstart
 
 ```bash
-# 0. collections
+# 0. collections — ONLY needed if you installed bare ansible-core.
+#    The full 'ansible' package (apt or pip) already bundles these; skip if so.
 ansible-galaxy collection install -r requirements.yml
 
 # 1. environment config (live copies are gitignored)
@@ -94,6 +96,9 @@ cp group_vars/vault.example.yml group_vars/vault.yml
 $EDITOR group_vars/vault.yml         # set a strong vault_admin_password
 ansible-vault encrypt group_vars/vault.yml
 echo 'my-vault-password' > .vault_pass && chmod 600 .vault_pass   # gitignored
+export ANSIBLE_VAULT_PASSWORD_FILE=$PWD/.vault_pass   # ansible.cfg deliberately
+# doesn't reference the file (a missing referenced file breaks CI and fresh
+# clones) — set this per shell, or add it to your direnv/.bashrc for the repo
 
 # (phase one needs no NAS — cluster NFS + off-box backup default to off
 #  in group_vars/all.yml; flip them on later when the exports exist)

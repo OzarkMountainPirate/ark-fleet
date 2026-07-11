@@ -1,0 +1,11 @@
+---
+static_net_enabled: false
+# The static IP defaults to the host's inventory ansible_host, so the
+# inventory stays the single source of truth for host identity. Override
+# per-host only if ansible_host is a DNS name.
+static_net_ip: "{{ ansible_host }}"
+static_net_prefix: 24
+static_net_gateway: ""
+static_net_dns: []
+# Optional resolv.conf search domain; empty = omit.
+static_net_search: ""

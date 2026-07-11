@@ -1,0 +1,10 @@
+# MANAGED BY ANSIBLE (ark-fleet static_net) — do not edit by hand.
+source /etc/network/interfaces.d/*
+
+auto lo
+iface lo inet loopback
+
+auto {{ static_net_iface }}
+iface {{ static_net_iface }} inet static
+    address {{ static_net_ip }}/{{ static_net_prefix }}
+    gateway {{ static_net_gateway }}

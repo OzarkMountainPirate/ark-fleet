@@ -1,0 +1,7 @@
+# MANAGED BY ANSIBLE (ark-fleet static_net) — do not edit by hand.
+{% if static_net_search | length > 0 %}
+search {{ static_net_search }}
+{% endif %}
+{% for ns in static_net_dns %}
+nameserver {{ ns }}
+{% endfor %}

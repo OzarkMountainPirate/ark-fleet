@@ -103,6 +103,17 @@ The inventory expects fixed IPs. Add DHCP reservations on your router for
 the hosts' MACs so they always land there — or edit `inventory/hosts.yml` to
 whatever they get.
 
+## Per-host static-IP installs (skip DHCP reservations)
+
+Set `STATIC_HOSTS` (plus `STATIC_GATEWAY`/`STATIC_NETMASK`/`STATIC_DNS`) in
+`.env` and re-run `setup.sh`: the UEFI boot menu gains one entry per host
+("install acheron (static 192.168.1.21)") that installs with a fixed IP and
+hostname via kernel-arg preseeding — netcfg reads kernel args before fetching
+the preseed and they override it, so the single generic preseed still serves
+every host. Pick the host's entry at the GRUB menu (one keystroke); the
+default entry remains the generic DHCP install for new hardware. UEFI menu
+only.
+
 ## Preventing reinstall loops (post-install boot behavior)
 
 A freshly installed host that still PXE-boots first will happily reinstall
