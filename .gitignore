@@ -3,12 +3,8 @@
 group_vars/vault.yml
 *.retry
 
-# CI secrets
-ci/.env
-
 # built install media
 bootstrap/*.iso
-ci/gitea-runner/.env
 
 # live environment config (copy from the *.example.yml files)
 inventory/hosts.yml

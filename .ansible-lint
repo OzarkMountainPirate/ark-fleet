@@ -1,8 +1,12 @@
 ---
 profile: basic
 exclude_paths:
-  - collections/
   - .github/
 skip_list:
-  - command-instead-of-module   # dpkg/steamcmd/gamectl have no equivalent modules
-  - no-changed-when             # gamectl install is guarded by stat + async, not changed_when
+  # dpkg/steamcmd/gamectl have no equivalent modules
+  - command-instead-of-module
+  # gamectl install is guarded by stat + async, not changed_when
+  - no-changed-when
+  # backup_*/cluster_nfs_* are deliberately fleet-wide knobs set in
+  # group_vars/all.yml; role defaults share those names to act as fallbacks
+  - var-naming[no-role-prefix]

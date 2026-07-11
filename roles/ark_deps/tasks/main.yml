@@ -5,8 +5,8 @@
 
 - name: Enable i386 architecture (SteamCMD is 32-bit)
   ansible.builtin.command: dpkg --add-architecture i386
-  register: add_arch
-  changed_when: "'already' not in (add_arch.stderr | default(''))"
+  register: ark_deps_add_arch
+  changed_when: "'already' not in (ark_deps_add_arch.stderr | default(''))"
   failed_when: false
 
 # steamcmd lives in non-free on Debian. Add contrib/non-free/non-free-firmware
@@ -21,12 +21,12 @@
       Suites: {{ ansible_distribution_release }} {{ ansible_distribution_release }}-updates
       Components: contrib non-free non-free-firmware
       Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-  register: nonfree_src
+  register: ark_deps_nonfree_src
 
 - name: Refresh apt cache after enabling non-free
   ansible.builtin.apt:
     update_cache: true
-  when: nonfree_src is changed
+  when: ark_deps_nonfree_src is changed
 
 - name: Pre-accept SteamCMD EULA (non-interactive)
   ansible.builtin.debconf:
@@ -57,10 +57,10 @@
 # --- mcrcon: build the one genuinely-maintained RCON client from source ---
 - name: Check for mcrcon
   ansible.builtin.stat: { path: /usr/local/bin/mcrcon }
-  register: mcrcon_bin
+  register: ark_deps_mcrcon_bin
 
 - name: Build + install mcrcon
-  when: not mcrcon_bin.stat.exists
+  when: not ark_deps_mcrcon_bin.stat.exists
   block:
     - name: Build deps for mcrcon
       ansible.builtin.apt: { name: [git, gcc, make], state: present }

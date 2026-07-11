@@ -12,18 +12,18 @@
     owner: root
     group: root
     mode: "0640"                       # contains ADMIN_PASSWORD
-  notify: sync instances
+  notify: Sync instances
 
 # --- First install: creates arkserver user, /opt/ark tree, downloads the
 #     ~14GB server template. Guarded so it only runs once. ---
 - name: Check for existing server template
   ansible.builtin.stat:
     path: "{{ ark_root }}/template/ShooterGame/Binaries/Linux/ShooterGameServer"
-  register: ark_template
+  register: gamectl_template
 
-- name: gamectl install (downloads server; long-running, first run only)
+- name: Run gamectl install (downloads server; long-running, first run only)
   ansible.builtin.command: gamectl install
-  when: not ark_template.stat.exists
+  when: not gamectl_template.stat.exists
   async: "{{ gamectl_install_timeout }}"
   poll: 30
   changed_when: true

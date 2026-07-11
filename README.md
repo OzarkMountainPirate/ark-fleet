@@ -1,20 +1,27 @@
 # ark-fleet
 
-Infrastructure-as-Code to provision two Lenovo Tiny hosts into a single
-**ARK: Survival Evolved** cluster, wrapped around the [`gamectl`](https://github.com/OzarkMountainPirate/utilities/tree/main/bash-scripts/ark-ase)
-toolkit. Ansible is the control plane; `gamectl` + systemd `ark@.service` is the
-runtime. No Docker, no daemon, no Jenkins. **Target OS: Debian 13 (trixie)** —
-SteamCMD comes from `non-free`; `gamectl`'s paths are unchanged from its 24.04 origins.
+A fun learning project for testing and practicing **DevOps methodology and
+tooling** against a real workload: Infrastructure-as-Code that takes two small
+bare-metal hosts from powered-off to a running **ARK: Survival Evolved**
+cluster — unattended OS install over PXE, configuration management with
+Ansible, lint CI on every push. The game servers are the excuse; the pipeline
+is the point.
 
-## Why no Jenkins
+Built around the [`gamectl`](https://github.com/OzarkMountainPirate/utilities/tree/main/bash-scripts/ark-ase)
+toolkit. Ansible is the control plane; `gamectl` + systemd `ark@.service` is the
+runtime. No Docker on the game hosts, no daemons, no orchestration server.
+**Target OS: Debian 13 (trixie).**
+
+## Why no CI/CD orchestration server?
 
 There is no build here. A game server has no compile step and no artifact to
-promote, so a CI *orchestrator* is solving a problem you don't have. The DevOps
-value is **reproducibility and config management**, and that's Ansible + Git.
-If you want a pipeline UI, the only justified use is *linting* (shellcheck /
-ansible-lint / yamllint on push) — wired up under "CI" below, free on GitHub
-Actions for this public repo. Jenkins is the
-wrong shape for all of it.
+promote, so a CI/CD orchestrator (Jenkins, GitLab CI runners-as-a-service,
+Spinnaker, and friends) would be solving a problem this project doesn't have.
+The DevOps value in a workload like this is **reproducibility and configuration
+management** — that's Git + Ansible. The one pipeline that earns its keep is
+lint-on-push (see "CI" below), and a hosted runner covers it with zero
+infrastructure. Picking the smallest tool that does the job is part of the
+methodology being practiced.
 
 ## Topology
 
@@ -31,8 +38,7 @@ wrong shape for all of it.
 One map per box, one shared `CLUSTER_ID`. The **shared NFS cluster directory is
 load-bearing**: ARK writes cross-server transfer data to `ARK_ROOT/cluster`, and
 on a multi-host cluster that directory must be the same storage on both hosts or
-uploads on one map never appear on the other. That's the single thing most
-homelab ARK clusters get wrong.
+uploads on one map never appear on the other.
 
 ## Layout
 
@@ -50,13 +56,12 @@ roles/
   cluster_mount/         mounts the shared NFS cluster dir
   gamectl/               vendors gamectl, renders /etc/gamectl.conf, install + create + enable units
   ark_backup/            systemd timer -> save-safe gamectl backup -> rsync to TrueNAS
-.github/workflows/       GitHub Actions lint (default CI)
-ci/                      optional self-hosted Woodpecker stack for Styx
+.github/workflows/       GitHub Actions lint CI (yamllint, ansible-lint, shellcheck)
 ```
 
 ## Day 0 — bare metal (over the network, no USB)
 
-The two Tinys install themselves over the wire. A reusable PXE stack on Styx
+The hosts install themselves over the wire. A reusable PXE stack on a LAN Docker host
 (`netboot/`) runs `dnsmasq` in **proxyDHCP** mode — it adds PXE boot info without
 touching your pfSense DHCP — plus `nginx` to serve the preseed. PXE-boot a Tiny
 and it installs Debian 13 unattended, then reboots SSH-ready.
@@ -122,23 +127,22 @@ Keep **RCON (TCP) off the internet** — it's LAN-only by design.
 | acheron | CrystalIsles |       7795 |       27060 |           27160 |
 | cocytus | Fjordur      |       7799 |       27062 |           27162 |
 
-## CI (lint only — the one justified pipeline)
+## CI (lint on push)
 
-Push-triggered lint: `yamllint`, `ansible-lint`, and `shellcheck` on the vendored
-`gamectl`. No build, because there's nothing to compile.
+`.github/workflows/lint.yml` runs three linters on every push via GitHub
+Actions — no self-hosted infrastructure:
 
-**This repo lives on self-hosted Gitea, so the default is Gitea Actions.**
-Gitea Actions is GitHub-Actions-compatible and picks up the same
-`.github/workflows/lint.yml` (shellcheck is installed explicitly in the
-workflow, so it runs identically on GitHub-hosted and self-hosted runners).
-One-time setup: enable Actions on the Gitea instance (`[actions] ENABLED=true`
-in app.ini, or it may already be on), enable Actions on the repo
-(Settings -> Actions), and register a runner — a ready `.env`-driven act_runner
-stack for Styx is in `ci/gitea-runner/`.
+- **yamllint** — catches malformed YAML (bad indentation, duplicate keys,
+  syntax slips) across the whole repo before Ansible ever parses it.
+- **ansible-lint** — checks the playbook and roles against Ansible best
+  practices: deprecated syntax, unsafe patterns, naming conventions
+  Config in `.ansible-lint`, with each skipped rule justified
+  inline.
+- **shellcheck** — static analysis for the shell scripts (`netboot/setup.sh`,
+  `bootstrap/build-iso.sh`, the vendored `gamectl`): quoting bugs, unset
+  variables, portability traps. Config in `.shellcheckrc`.
 
-If the repo is ever mirrored/published to GitHub, the same workflow runs there
-with zero changes (free on public repos). Woodpecker (`ci/`) remains as a
-third option; run one CI, not several.
-
-Linter config (`.yamllint` / `.ansible-lint`) is tuned so the first run flags
-real problems, not style nits.
+There's nothing to compile, so lint IS the test suite: it can't prove a deploy
+will succeed, but it catches the class of typo that would otherwise only
+surface mid-playbook-run against a live host. Red X on a commit = don't deploy
+that commit.
