@@ -12,6 +12,7 @@
   become: true
   roles:
     - { role: common,        tags: [common, base] }
+    - { role: data_disk,     tags: [storage, disk] }
     - { role: ark_deps,      tags: [deps] }
     - { role: cluster_mount, tags: [cluster, nfs] }
     - { role: gamectl,       tags: [gamectl, ark] }

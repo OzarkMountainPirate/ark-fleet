@@ -38,7 +38,8 @@ methodology being practiced.
 One map per box, one shared `CLUSTER_ID`. The **shared NFS cluster directory is
 load-bearing**: ARK writes cross-server transfer data to `ARK_ROOT/cluster`, and
 on a multi-host cluster that directory must be the same storage on both hosts or
-uploads on one map never appear on the other.
+uploads on one map never appear on the other. That's the single thing most
+homelab ARK clusters get wrong.
 
 ## Layout
 
@@ -52,6 +53,7 @@ group_vars/vault.yml     ansible-vault: admin/RCON password (gitignored)
 site.yml                 the playbook
 roles/
   common/                hostname, base pkgs, unattended-upgrades, ufw (game/query UDP; RCON LAN-only)
+  data_disk/             optional second disk (e.g. HDD) formatted + mounted at /opt
   ark_deps/              i386 multiarch, steamcmd (non-free), lib32gcc-s1, builds mcrcon
   cluster_mount/         mounts the shared NFS cluster dir
   gamectl/               vendors gamectl, renders /etc/gamectl.conf, install + create + enable units
@@ -135,8 +137,8 @@ Actions — no self-hosted infrastructure:
 - **yamllint** — catches malformed YAML (bad indentation, duplicate keys,
   syntax slips) across the whole repo before Ansible ever parses it.
 - **ansible-lint** — checks the playbook and roles against Ansible best
-  practices: deprecated syntax, unsafe patterns, naming conventions
-  Config in `.ansible-lint`, with each skipped rule justified
+  practices: deprecated syntax, unsafe patterns, idempotency smells, naming
+  conventions. Config in `.ansible-lint`, with each skipped rule justified
   inline.
 - **shellcheck** — static analysis for the shell scripts (`netboot/setup.sh`,
   `bootstrap/build-iso.sh`, the vendored `gamectl`): quoting bugs, unset

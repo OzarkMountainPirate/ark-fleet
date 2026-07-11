@@ -1,0 +1,8 @@
+---
+# Fallback defaults — the real knobs live in group_vars/all.yml.
+data_disk_enabled: false
+data_disk_device: /dev/sda
+data_disk_mount: /opt
+data_disk_fstype: ext4
+data_disk_label: arkdata
+data_disk_mount_opts: defaults,noatime

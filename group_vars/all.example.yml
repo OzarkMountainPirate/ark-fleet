@@ -16,6 +16,18 @@ backup_keep_days: "14"
 # admin/RCON password pulled from the vault (see vault.example.yml)
 admin_password:  "{{ vault_admin_password }}"
 
+# --- Dedicated data disk (optional) ------------------------------------------
+# Mounts a second disk at /opt so the ~40GB+ of ARK files (template, instances,
+# saves, local backups under /opt/ark) never fill the system disk. Example:
+# 256GB NVMe system disk + 500GB HDD data disk. The role refuses to touch the
+# disk backing / and never reformats an existing filesystem.
+data_disk_enabled: true
+data_disk_device: /dev/sda         # the HDD (NVMe system disk is nvme0n1)
+data_disk_mount: /opt
+data_disk_fstype: ext4
+data_disk_label: arkdata
+data_disk_mount_opts: defaults,noatime
+
 # --- Shared cluster directory over NFS (the load-bearing bit) ---------------
 # ARK stores cross-server transfer data in ARK_ROOT/cluster. On a multi-HOST
 # cluster that dir MUST be shared, or uploads on one map never appear on the

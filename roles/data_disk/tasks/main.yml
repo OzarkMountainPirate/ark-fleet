@@ -1,0 +1,67 @@
+---
+# Partition, format, and persistently mount a dedicated data disk (e.g. an
+# HDD at /opt so game files never fill the system NVMe).
+#
+# SAFETY: this role touches block devices, so it is deliberately paranoid.
+# It hard-fails rather than guess when anything looks off, and the filesystem
+# module never reformats an existing filesystem (no force). To reuse a disk
+# with an old filesystem on it, wipe it manually first (wipefs -a) — that
+# destructive step stays a human decision.
+
+- name: Skip when data disk is disabled
+  ansible.builtin.debug:
+    msg: "data_disk_enabled is false — everything stays on the system disk"
+  when: not (data_disk_enabled | bool)
+
+- name: Provision data disk
+  when: data_disk_enabled | bool
+  block:
+    - name: Assert the device exists on this host
+      ansible.builtin.assert:
+        that: (data_disk_device | basename) in ansible_facts.devices
+        fail_msg: >-
+          {{ data_disk_device }} not found on {{ inventory_hostname }}.
+          Check lsblk and set data_disk_device accordingly.
+
+    - name: Determine the device backing /
+      ansible.builtin.set_fact:
+        data_disk_root_dev: >-
+          {{ (ansible_facts.mounts | selectattr('mount', 'equalto', '/')
+              | first).device }}
+
+    - name: Refuse to touch the disk the OS runs from
+      ansible.builtin.assert:
+        that: not data_disk_root_dev.startswith(data_disk_device)
+        fail_msg: >-
+          {{ data_disk_device }} backs the root filesystem
+          ({{ data_disk_root_dev }}). Refusing. The OS likely installed onto
+          the data disk — reinstall with the NVMe-preferring preseed.
+
+    - name: Create GPT partition spanning the disk
+      community.general.parted:
+        device: "{{ data_disk_device }}"
+        label: gpt
+        number: 1
+        state: present
+        part_start: 0%
+        part_end: 100%
+
+    - name: Build partition path (sda -> sda1, nvme0n1 -> nvme0n1p1)
+      ansible.builtin.set_fact:
+        data_disk_part: >-
+          {{ data_disk_device }}{{ 'p1' if 'nvme' in data_disk_device
+             else '1' }}
+
+    - name: Create filesystem (never reformats an existing one)
+      community.general.filesystem:
+        fstype: "{{ data_disk_fstype }}"
+        dev: "{{ data_disk_part | trim }}"
+        opts: "-L {{ data_disk_label }}"
+
+    - name: Mount persistently by label
+      ansible.posix.mount:
+        src: "LABEL={{ data_disk_label }}"
+        path: "{{ data_disk_mount }}"
+        fstype: "{{ data_disk_fstype }}"
+        opts: "{{ data_disk_mount_opts }}"
+        state: mounted

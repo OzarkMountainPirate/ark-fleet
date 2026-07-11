@@ -3,7 +3,5 @@
 # runtime, which trips two advisory (info) checks that are false positives here:
 #   SC2153 — "CLUSTER_ID may not be assigned" (it's set in /etc/gamectl.conf)
 #   SC2012 — "use find instead of ls" (style; safe for our controlled filenames)
-#   SC2015 — "A && B || C is not if-then-else" (guard pattern where C is die;
-#   die on either failed condition is the intended behavior)
 # Real problems (warning/error) still fail. First-party scripts stay clean.
-disable=SC2153,SC2012,SC2015
+disable=SC2153,SC2012

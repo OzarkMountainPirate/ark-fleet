@@ -10,6 +10,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      # The pip 'ansible' bundle ships community.general and ansible.posix,
+      # so no ansible-galaxy step — galaxy.ansible.com is a flaky external
+      # dependency CI doesn't need. This also matches the environment the
+      # repo is validated against locally.
       - name: Install linters
         run: pip install ansible ansible-lint yamllint
 

@@ -84,7 +84,7 @@ force with `REFRESH=1`), and publishes the preseed. **Edit `.env`, re-run
 
 ## Install the Tinys
 
-Power them on and PXE-boot. They pick up an IP from DHCP, grab the bootloader
+Power them on and PXE-boot. They pick up an IP from pfSense, grab the bootloader
 from dnsmasq, load the installer over TFTP, pull the preseed over HTTP, and run
 the unattended install. The base system still pulls packages from the Debian
 mirror (that's what "netinst" means), so the Tinys need internet during install.
