@@ -37,6 +37,11 @@
           ({{ data_disk_root_dev }}). Refusing. The OS likely installed onto
           the data disk — reinstall with the NVMe-preferring preseed.
 
+    - name: Install partitioning tools
+      ansible.builtin.apt:
+        name: parted
+        state: present
+
     - name: Create GPT partition spanning the disk
       community.general.parted:
         device: "{{ data_disk_device }}"
