@@ -14,6 +14,7 @@
     comment: "ARK NFS squash identity (managed by ark-fleet)"
     group: "{{ nas_ark_group }}"
     password_disabled: true
+    smb: false
     shell: /usr/sbin/nologin
     home: /nonexistent
     create_group: false
