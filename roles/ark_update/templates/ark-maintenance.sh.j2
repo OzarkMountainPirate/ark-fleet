@@ -1,0 +1,40 @@
+#!/bin/bash
+# MANAGED BY ANSIBLE (ark-fleet ark_update) — weekly maintenance orchestration.
+# Broadcast countdown -> stop -> ARK update+sync -> OS patch -> reboot|start.
+# Mechanics live in gamectl; this script only sequences them.
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /etc/gamectl.conf    # provides INSTANCES
+
+broadcast() {
+  local msg="$1" key
+  for key in "${!INSTANCES[@]}"; do
+    /usr/local/bin/gamectl rcon "$key" "Broadcast ${msg}" || true   # stopped instances just miss it
+  done
+}
+
+# --- countdown ---------------------------------------------------------------
+prev=0
+for m in {{ update_warn_minutes | sort(reverse=true) | join(' ') }}; do
+  if [ "$prev" -gt 0 ]; then sleep $(( (prev - m) * 60 )); fi
+  broadcast "{{ update_warn_message | replace('{m}', '${m}') }}"
+  prev=$m
+done
+sleep $(( prev * 60 ))
+
+# --- maintenance -------------------------------------------------------------
+/usr/local/bin/gamectl stop all
+/usr/local/bin/gamectl update          # steamcmd, with v1.1 retry logic
+/usr/local/bin/gamectl sync all
+apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get -y -qq full-upgrade
+
+{% if update_reboot | bool %}
+if [ -f /var/run/reboot-required ]; then
+  echo "reboot required — rebooting (instances start on boot)"
+  systemctl reboot
+  exit 0
+fi
+{% endif %}
+/usr/local/bin/gamectl start all

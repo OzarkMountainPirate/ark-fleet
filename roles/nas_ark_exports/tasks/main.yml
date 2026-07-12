@@ -14,6 +14,8 @@
     comment: "ARK NFS squash identity (managed by ark-fleet)"
     group: "{{ nas_ark_group }}"
     password_disabled: true
+    # SMB users may not have password auth disabled (TrueNAS 25.x middleware
+    # rule); this identity exists only as an NFS mapall target anyway.
     smb: false
     shell: /usr/sbin/nologin
     home: /nonexistent

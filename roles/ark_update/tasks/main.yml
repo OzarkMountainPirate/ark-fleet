@@ -1,0 +1,29 @@
+---
+- name: Install maintenance script
+  ansible.builtin.template:
+    src: ark-maintenance.sh.j2
+    dest: /usr/local/sbin/ark-maintenance
+    mode: "0755"
+  when: update_enabled | bool
+
+- name: Install maintenance service unit
+  ansible.builtin.template:
+    src: ark-maintenance.service.j2
+    dest: /etc/systemd/system/ark-maintenance.service
+    mode: "0644"
+  when: update_enabled | bool
+
+- name: Install maintenance timer unit
+  ansible.builtin.template:
+    src: ark-maintenance.timer.j2
+    dest: /etc/systemd/system/ark-maintenance.timer
+    mode: "0644"
+  when: update_enabled | bool
+
+- name: Enable + start maintenance timer
+  ansible.builtin.systemd:
+    name: ark-maintenance.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: update_enabled | bool

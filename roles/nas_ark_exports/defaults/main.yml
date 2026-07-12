@@ -1,7 +1,7 @@
 ---
 # TrueNAS-side provisioning for the ARK cluster. Overrides live in
 # group_vars/all/main.yml (nas_* section).
-nas_pool: Pool1
+nas_pool: tank
 nas_ark_parent: ark
 # NAS-local identity that ALL client NFS access is squashed to (mapall).
 # Needed because arkserver on each game host has a different dynamic UID.

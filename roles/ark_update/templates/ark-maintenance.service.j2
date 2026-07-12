@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly ARK maintenance (broadcast, update, patch, reboot if needed)
+Wants=network-online.target
+After=network-online.target
+# Sunday 04:30 collides with the daily backup timer by design: order after it
+# so the save archives land before maintenance stops the world.
+After=ark-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ark-maintenance
+# countdown ({{ update_warn_minutes | max }}m) + download time; be generous
+TimeoutStartSec=2h

@@ -15,6 +15,29 @@
     force: true                        # re-check upstream each run; changed only on diff
     checksum: "{{ ('sha256:' + gamectl_checksum) if gamectl_checksum | length > 0 else omit }}"
 
+# --- Reconcile: retire instances on disk that are no longer declared --------
+# MUST run BEFORE the conf render: gamectl backup resolves instances from the
+# conf on disk, so the retiring instance has to still be listed when its
+# save-safe archive is taken. (Learned the hard way: rc=2, data retained.)
+- name: Find existing instances
+  ansible.builtin.find:
+    paths: "{{ ark_root }}/instances"
+    file_type: directory
+    recurse: false
+  register: gamectl_existing
+
+- name: Compute retired instances (on disk but not declared)
+  ansible.builtin.set_fact:
+    gamectl_retired: >-
+      {{ gamectl_existing.files | map(attribute='path') | map('basename')
+         | difference(ark_maps | map('lower') | list) }}
+
+- name: Retire undeclared instances (backup -> stop -> disable -> remove)
+  ansible.builtin.include_tasks: retire.yml
+  loop: "{{ gamectl_retired }}"
+  loop_control:
+    loop_var: retired_instance
+
 - name: Render /etc/gamectl.conf
   ansible.builtin.template:
     src: gamectl.conf.j2
@@ -62,23 +85,3 @@
     state: started
     daemon_reload: true
   loop: "{{ ark_maps }}"
-
-# --- Reconcile: retire instances on disk that are no longer declared --------
-- name: Find existing instances
-  ansible.builtin.find:
-    paths: "{{ ark_root }}/instances"
-    file_type: directory
-    recurse: false
-  register: gamectl_existing
-
-- name: Compute retired instances (on disk but not declared)
-  ansible.builtin.set_fact:
-    gamectl_retired: >-
-      {{ gamectl_existing.files | map(attribute='path') | map('basename')
-         | difference(ark_maps | map('lower') | list) }}
-
-- name: Retire undeclared instances (backup -> stop -> disable -> remove)
-  ansible.builtin.include_tasks: retire.yml
-  loop: "{{ gamectl_retired }}"
-  loop_control:
-    loop_var: retired_instance

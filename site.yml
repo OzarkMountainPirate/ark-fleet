@@ -18,6 +18,7 @@
     - { role: cluster_mount, tags: [cluster, nfs] }
     - { role: gamectl,       tags: [gamectl, ark] }
     - { role: ark_backup,    tags: [backup] }
+    - { role: ark_update,    tags: [update, maintenance] }
 
   post_tasks:
     # static_net wrote the config but deliberately didn't apply it mid-play.

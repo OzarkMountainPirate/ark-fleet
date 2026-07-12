@@ -1,0 +1,11 @@
+---
+update_enabled: true
+# Sundays 04:30. The service orders itself After=ark-backup.service so the
+# Sunday backup completes before maintenance begins.
+update_on_calendar: "Sun *-*-* 04:30:00"
+# Countdown broadcasts, minutes before shutdown (descending).
+update_warn_minutes: [15, 5, 1]
+update_warn_message: "SERVER MAINTENANCE in {m} minute(s): world save + patching. Back shortly!"
+# Reboot if the OS says one is required; instances are enabled units and
+# start automatically after boot.
+update_reboot: true
