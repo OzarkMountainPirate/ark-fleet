@@ -10,6 +10,8 @@ Type=oneshot
 ExecStart=/usr/local/bin/gamectl backup {{ m | lower }}
 {% endfor %}
 {% if backup_push_enabled | bool %}
-# Push archives off-box to the NAS via the NFS mount (no SSH trust needed).
-ExecStart=/usr/bin/rsync -a --delete {{ ark_root }}/bak/ {{ backup_nfs_mount }}/{{ inventory_hostname }}/
+# Push archives to the NAS via the NFS mount. NOT -a: the export squashes all
+# access to one identity, so -a's owner/group preservation EPERMs and rsync
+# exits 23 even though every byte copied. -rlpt = recurse/links/perms/times.
+ExecStart=/usr/bin/rsync -rlpt --delete {{ ark_root }}/bak/ {{ backup_nfs_mount }}/{{ inventory_hostname }}/
 {% endif %}
