@@ -31,6 +31,20 @@
     - "{{ nas_pool }}/{{ nas_ark_parent }}/cluster"
     - "{{ nas_pool }}/{{ nas_ark_parent }}/backups"
 
+# Datasets are created root-owned, but the exports mapall to {{ nas_ark_user }}
+# — without this chown, every squashed client write is EPERM and both the
+# cluster dir and backup push silently can't function.
+- name: Own the exported dirs by the squash identity
+  ansible.builtin.file:
+    path: "/mnt/{{ nas_pool }}/{{ nas_ark_parent }}/{{ item }}"
+    owner: "{{ nas_ark_user }}"
+    group: "{{ nas_ark_group }}"
+    mode: "0770"
+    state: directory
+  loop:
+    - cluster
+    - backups
+
 - name: Ensure NFS service is enabled and running
   arensb.truenas.service:
     name: nfs
