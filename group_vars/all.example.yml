@@ -1,6 +1,7 @@
 ---
 # ============================================================================
-# COPY ME:  cp group_vars/all.example.yml group_vars/all.yml   (gitignored)
+# COPY ME:  cp group_vars/all.example.yml group_vars/all/main.yml   (gitignored)
+# (must live INSIDE group_vars/all/ — files there load for every host)
 # Fleet-wide settings. Non-secret. Secrets live in group_vars/vault.yml
 # (ansible-vault) and are referenced here as vault_* .
 # ============================================================================
@@ -10,7 +11,9 @@ ark_root:        "/opt/ark"
 ark_user:        "arkserver"
 cluster_id:      "my-cluster"           # same on both hosts = transfers work
 ark_appid:       "376030"               # ASE dedicated server
-mods:            ""                      # comma-separated Workshop IDs, no spaces
+# Steam Workshop mod IDs (applies to every instance; server restart required
+# for changes to take effect: ansible ark_fleet -a "gamectl restart all")
+mods: []
 backup_keep_days: "14"
 
 # admin/RCON password pulled from the vault (see vault.example.yml)
@@ -59,9 +62,52 @@ cluster_nfs_opts:    "rw,hard,noatime,vers=4"
 # PHASE ONE: local backups only. The timer still runs save-safe gamectl backup
 # into /opt/ark/bak; flip this true once TrueNAS is ready to also rsync off-box.
 backup_push_enabled: false
-backup_remote:       "192.168.1.15:/mnt/tank/ark/backups"   # rsync/NFS target
+backup_nfs_server:   "192.168.1.15"                 # the NAS
+backup_nfs_export:   "/mnt/tank/ark/backups"
+backup_nfs_mount:    /mnt/ark-backups
+# automount: attaches on access, detaches when idle — a down NAS fails the
+# backup unit cleanly instead of hanging rsync (see ark_backup defaults).
+backup_nfs_opts:     "rw,hard,noatime,vers=4,x-systemd.automount,x-systemd.idle-timeout=600"
 backup_on_calendar:  "*-*-* 04:30:00"               # systemd OnCalendar, per host
 
 # --- Base hardening ---------------------------------------------------------
 manage_firewall: true
 timezone: "America/Chicago"
+
+# --- Canonical per-map ports (community-standard scheme) ----------------------
+# Ports are a function of the map — hosts just declare ark_maps in the
+# inventory and everything (gamectl.conf, ufw, units, backups) derives from
+# this table. Raw port is always game+1.
+ark_port_map:
+  TheIsland:     {game: 7777, query: 27051, rcon: 27151}
+  ScorchedEarth: {game: 7779, query: 27052, rcon: 27152}
+  Aberration:    {game: 7781, query: 27053, rcon: 27153}
+  Extinction:    {game: 7783, query: 27054, rcon: 27154}
+  Genesis1:      {game: 7785, query: 27055, rcon: 27155}
+  Genesis2:      {game: 7787, query: 27056, rcon: 27156}
+  TheCenter:     {game: 7789, query: 27057, rcon: 27157}
+  Ragnarok:      {game: 7791, query: 27058, rcon: 27158}
+  Valguero:      {game: 7793, query: 27059, rcon: 27159}
+  CrystalIsles:  {game: 7795, query: 27060, rcon: 27160}
+  LostIsland:    {game: 7797, query: 27061, rcon: 27161}
+  Fjordur:       {game: 7799, query: 27062, rcon: 27162}
+
+# Scale-down safety: undeclared instances found on a host are retired by the
+# play — save-safe gamectl backup FIRST, then stop/disable, then (only if the
+# backup succeeded and this is true) the instance directory is removed.
+ark_retire_removes_data: true
+
+# --- gamectl source pin -------------------------------------------------------
+# gamectl deploys from its upstream repo at this ref. Bump deliberately;
+# a tag or commit SHA keeps deploys reproducible. Optional sha256 pin:
+#   curl -sL <raw-url-at-ref> | sha256sum
+gamectl_version: "main"        # e.g. "v1.1" or a full commit SHA
+gamectl_checksum: ""
+
+# --- NAS provisioning (the 'nas' play; TrueNAS via arensb.truenas) -----------
+nas_pool: tank
+nas_ark_parent: ark
+nas_ark_user: arknfs          # all client NFS access squashed to this identity
+nas_ark_group: arknfs
+nas_export_networks:
+  - 192.168.1.0/24

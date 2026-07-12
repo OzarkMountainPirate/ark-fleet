@@ -1,4 +1,19 @@
 ---
+- name: Install NFS client for backup push
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+  when: backup_push_enabled | bool
+
+- name: Mount backup export (persistent)
+  ansible.posix.mount:
+    path: "{{ backup_nfs_mount }}"
+    src: "{{ backup_nfs_server }}:{{ backup_nfs_export }}"
+    fstype: nfs
+    opts: "{{ backup_nfs_opts }}"
+    state: mounted
+  when: backup_push_enabled | bool
+
 - name: Install backup service unit
   ansible.builtin.template:
     src: ark-backup.service.j2

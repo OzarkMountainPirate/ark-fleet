@@ -1,6 +1,7 @@
 ---
-# Copy to group_vars/vault.yml and encrypt:
-#   cp group_vars/vault.example.yml group_vars/vault.yml
-#   ansible-vault encrypt group_vars/vault.yml
-# vault.yml is gitignored. Never commit the plaintext.
+# Copy INTO group_vars/all/ (files there load for every host — a top-level
+# group_vars/vault.yml would silently match a nonexistent group and never load):
+#   cp group_vars/vault.example.yml group_vars/all/vault.yml
+#   ansible-vault encrypt group_vars/all/vault.yml
+# group_vars/all/ is gitignored. Never commit the plaintext.
 vault_admin_password: "REPLACE_WITH_A_STRONG_PASSWORD"

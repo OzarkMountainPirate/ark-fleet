@@ -1,6 +1,5 @@
 # secrets — never commit
 .vault_pass
-group_vars/vault.yml
 *.retry
 
 # built install media
@@ -8,4 +7,4 @@ bootstrap/*.iso
 
 # live environment config (copy from the *.example.yml files)
 inventory/hosts.yml
-group_vars/all.yml
+group_vars/all/

@@ -1,3 +1,13 @@
 ---
 backup_push_enabled: false
 backup_on_calendar: "*-*-* 04:30:00"
+# NFS export on the NAS that receives pushed archives (mounted locally so no
+# SSH trust between game hosts and the NAS is needed).
+backup_nfs_server: ""
+backup_nfs_export: ""
+backup_nfs_mount: /mnt/ark-backups
+# automount + idle-timeout: the export attaches on first access and detaches
+# when idle, so a down NAS only matters during the backup window itself — and
+# fails the unit with an I/O error instead of hanging rsync forever in
+# uninterruptible sleep (the classic hard-mount failure mode).
+backup_nfs_opts: rw,hard,noatime,vers=4,x-systemd.automount,x-systemd.idle-timeout=600

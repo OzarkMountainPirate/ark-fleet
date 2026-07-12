@@ -6,13 +6,16 @@ all:
   children:
     ark_fleet:
       hosts:
-        acheron:                       # Tiny #1
+        acheron:                       # host #1
           ansible_host: 192.168.1.21
-          ark_instances:
-            crystalisles: "CrystalIsles 7795 27060 27160"
-        cocytus:                       # Tiny #2
+          ark_maps: [Ragnarok]         # names from ark_port_map; add/remove/
+        cocytus:                       # swap here and re-run the play
           ansible_host: 192.168.1.22
-          ark_instances:
-            fjordur: "Fjordur 7799 27062 27162"
+          ark_maps: [Fjordur]
       vars:
         ansible_user: admin            # MUST match ADMIN_USER in netboot/.env
+    nas:
+      hosts:
+        fangtooth:                     # TrueNAS box (datasets + NFS exports)
+          ansible_host: 192.168.1.15
+          ansible_user: root           # TrueNAS middleware access

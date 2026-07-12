@@ -1,9 +1,10 @@
 # ark-fleet shellcheck config.
-# gamectl is a vendored upstream toolkit whose config vars are sourced at
-# runtime, which trips two advisory (info) checks that are false positives here:
-#   SC2153 — "CLUSTER_ID may not be assigned" (it's set in /etc/gamectl.conf)
-#   SC2012 — "use find instead of ls" (style; safe for our controlled filenames)
-#   SC2015 — "A && B || C is not if-then-else" (guard pattern where C is die;
-#             die on either failed condition is the intended behavior)
-# Real problems (warning/error) still fail. First-party scripts stay clean.
+# gamectl now lives (and should be linted) in its upstream repo; these
+# disables remain for ad-hoc local checks of a fetched copy — the advisory
+# (info) findings below are intentional idioms there, not defects:
+#   SC2153 — "CLUSTER_ID may not be assigned" (sourced from /etc/gamectl.conf)
+#   SC2012 — "use find instead of ls" (style; controlled filenames)
+#   SC2015 — "A && B || C is not if-then-else" (guard where C is die; dying on
+#             either failed condition is the intended behavior)
+# Real problems (warning/error) still fail.
 disable=SC2153,SC2012,SC2015

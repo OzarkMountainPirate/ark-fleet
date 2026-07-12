@@ -18,13 +18,13 @@ CLUSTER_ID="{{ cluster_id }}"
 ADMIN_PASSWORD="{{ admin_password }}"
 
 ## ---- Mods ---------------------------------------------------------------
-MODS="{{ mods }}"
+MODS="{{ mods | join(',') }}"
 
-## ---- Instances (this host only) -----------------------------------------
+## ---- Instances (this host only; derived from ark_maps + ark_port_map) ----
 ## Format: [key]="MapName GamePort QueryPort RconPort"
 declare -A INSTANCES=(
-{% for key, spec in ark_instances.items() %}
-  [{{ key }}]="{{ spec }}"
+{% for m in ark_maps %}
+  [{{ m | lower }}]="{{ m }} {{ ark_port_map[m].game }} {{ ark_port_map[m].query }} {{ ark_port_map[m].rcon }}"
 {% endfor %}
 )
 

@@ -1,0 +1,33 @@
+---
+# Retire one instance: archive the world save FIRST (gamectl backup is
+# save-safe and manages its own stop/start), then stop + disable the unit,
+# then remove the instance directory — but only if the backup succeeded and
+# ark_retire_removes_data is true. A failed backup keeps the data on disk.
+
+- name: "Retire (save-safe backup first): {{ retired_instance }}"
+  ansible.builtin.command: "gamectl backup {{ retired_instance }}"
+  register: gamectl_retire_backup
+  failed_when: false
+
+- name: "Retire (stop + disable unit): {{ retired_instance }}"
+  ansible.builtin.systemd:
+    name: "ark@{{ retired_instance }}"
+    enabled: false
+    state: stopped
+  failed_when: false        # unit may not exist if instance was never enabled
+
+- name: "Retire (remove instance directory): {{ retired_instance }}"
+  ansible.builtin.file:
+    path: "{{ ark_root }}/instances/{{ retired_instance }}"
+    state: absent
+  when:
+    - ark_retire_removes_data | bool
+    - gamectl_retire_backup.rc == 0
+
+- name: "Retire (kept on disk — backup failed or removal disabled): {{ retired_instance }}"
+  ansible.builtin.debug:
+    msg: >-
+      Instance directory retained at {{ ark_root }}/instances/{{ retired_instance }}
+      (backup rc={{ gamectl_retire_backup.rc }},
+      ark_retire_removes_data={{ ark_retire_removes_data }}).
+  when: not (ark_retire_removes_data | bool and gamectl_retire_backup.rc == 0)

@@ -1,3 +1,17 @@
 ---
 # gamectl install downloads ~14GB; give it room.
 gamectl_install_timeout: 3600
+
+# Where gamectl comes from: its upstream repo, at a PINNED ref. Updates land
+# in the upstream repo once (single source of truth); deploying them here is
+# a deliberate one-line pin bump (reproducibility). Use a tag or commit SHA —
+# "main" works but makes deploys non-reproducible; pin for real use.
+gamectl_repo_raw: "https://raw.githubusercontent.com/OzarkMountainPirate/utilities"
+gamectl_version: "main"
+gamectl_path: "bash-scripts/ark-ase/gamectl"
+# Optional but recommended with a pin: sha256 of the pinned file.
+#   curl -sL <raw-url-at-pin> | sha256sum
+gamectl_checksum: ""
+
+# Scale-down behavior; see group_vars. Backup always runs first regardless.
+ark_retire_removes_data: true

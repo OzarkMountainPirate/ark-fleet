@@ -38,3 +38,16 @@
           Reconnect there; run ssh-keygen -R against any old address entry.
       when: static_net_reboot_needed | default(false) | bool
       tags: [network, static]
+
+# ============================================================================
+# NAS play — provisions the ARK datasets + NFS exports on TrueNAS.
+# One-time bootstrap on the NAS: enable the SSH service and install your
+# control node's key for root (System -> SSH / root user), then:
+#   ansible-playbook site.yml --tags nas
+# ============================================================================
+- name: Provision NAS exports for the ARK cluster
+  hosts: nas
+  gather_facts: false
+  tags: [nas]
+  roles:
+    - { role: nas_ark_exports }

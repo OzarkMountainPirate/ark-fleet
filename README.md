@@ -47,9 +47,9 @@ homelab ARK clusters get wrong.
 netboot/                 reusable PXE stack: dnsmasq proxyDHCP + TFTP + HTTP (no USB)
 bootstrap/               the Debian 13 preseed (served by netboot) + USB/ISO fallback
 ansible.cfg              vault password file, sudo, inventory path
-inventory/hosts.yml      the two hosts + each host's ark_instances (map+ports)
-group_vars/all.yml       cluster id, appid, NFS + backup targets, hardening
-group_vars/vault.yml     ansible-vault: admin/RCON password (gitignored)
+inventory/hosts.yml      the hosts + each host's ark_maps (ports derive from ark_port_map)
+group_vars/all/          live config dir: main.yml (settings) + vault.yml (secrets)
+group_vars/*.example.yml committed templates for the files in group_vars/all/
 site.yml                 the playbook
 roles/
   static_net/            pins each host's IP from the inventory (no DHCP reservations)
@@ -57,7 +57,7 @@ roles/
   data_disk/             optional second disk (e.g. HDD) formatted + mounted at /opt
   ark_deps/              i386 multiarch, steamcmd (non-free), lib32gcc-s1, builds mcrcon
   cluster_mount/         mounts the shared NFS cluster dir
-  gamectl/               vendors gamectl, renders /etc/gamectl.conf, install + create + enable units
+  gamectl/               fetches gamectl from upstream at a pinned ref, renders /etc/gamectl.conf, install + create + enable units
   ark_backup/            systemd timer -> save-safe gamectl backup -> rsync to TrueNAS
 .github/workflows/       GitHub Actions lint CI (yamllint, ansible-lint, shellcheck)
 ```
@@ -88,13 +88,14 @@ ansible-galaxy collection install -r requirements.yml
 
 # 1. environment config (live copies are gitignored)
 cp inventory/hosts.example.yml inventory/hosts.yml     # your IPs + ansible_user
-cp group_vars/all.example.yml group_vars/all.yml       # NFS/backup/cluster settings
+cp group_vars/all.example.yml group_vars/all/main.yml    # NFS/backup/cluster settings
 cp netboot/.env.example netboot/.env                   # PXE stack + installer identity
 
 # 2. secrets
-cp group_vars/vault.example.yml group_vars/vault.yml
-$EDITOR group_vars/vault.yml         # set a strong vault_admin_password
-ansible-vault encrypt group_vars/vault.yml
+mkdir -p group_vars/all
+cp group_vars/vault.example.yml group_vars/all/vault.yml
+$EDITOR group_vars/all/vault.yml     # set a strong vault_admin_password
+ansible-vault encrypt group_vars/all/vault.yml
 echo 'my-vault-password' > .vault_pass && chmod 600 .vault_pass   # gitignored
 export ANSIBLE_VAULT_PASSWORD_FILE=$PWD/.vault_pass   # ansible.cfg deliberately
 # doesn't reference the file (a missing referenced file breaks CI and fresh
@@ -103,8 +104,8 @@ export ANSIBLE_VAULT_PASSWORD_FILE=$PWD/.vault_pass   # ansible.cfg deliberately
 # (phase one needs no NAS — cluster NFS + off-box backup default to off
 #  in group_vars/all.yml; flip them on later when the exports exist)
 
-# 3. vendor the current gamectl (already fetched, but keep it in sync):
-cp ~/utilities/bash-scripts/ark-ase/gamectl roles/gamectl/files/gamectl
+# 3. gamectl deploys from its upstream repo at the ref pinned in group_vars
+#    (gamectl_version). Updating gamectl = commit upstream, bump the pin here.
 
 # 4. dry run, then deploy
 ansible-playbook site.yml --check --diff
@@ -123,6 +124,30 @@ ansible all -m command -a "gamectl update"            # patch template (then syn
 ```
 RCON, mods, and per-instance control are all `gamectl` on the box; Ansible only
 owns provisioning + config + lifecycle timers.
+
+## Maps, scaling, and mods
+
+Ports are a function of the map (`ark_port_map` in group_vars), so the
+inventory only declares which maps each host runs:
+
+```yaml
+acheron:
+  ark_maps: [Ragnarok, Valguero]
+```
+
+- **Add a map:** add its name, run the play. Instance is created from the
+  local template (fast — no re-download), unit enabled, firewall opened.
+- **Remove a map:** delete its name, run the play. The play retires the
+  instance: save-safe `gamectl backup` first, then stop/disable, then the
+  instance directory is removed (only if the backup succeeded;
+  `ark_retire_removes_data: false` keeps data on disk instead).
+- **Swap a map:** both of the above in one edit + one run.
+- **Mods:** edit the global `mods` list in group_vars, run the play, then
+  restart instances (`ansible ark_fleet -a "gamectl restart all"`) — ARK's
+  -automanagedmods fetches them at startup. Mods apply fleet-wide.
+
+Retired maps' ufw rules are not auto-removed (harmless on LAN; prune with
+`ufw status numbered` if desired). Router port forwards are manual either way.
 
 ## Router port forwards
 

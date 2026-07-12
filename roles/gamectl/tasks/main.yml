@@ -1,9 +1,19 @@
 ---
-- name: Deploy gamectl to /usr/local/bin
-  ansible.builtin.copy:
-    src: gamectl                       # vendored in roles/gamectl/files/
+- name: Assert every declared map exists in the port table
+  ansible.builtin.assert:
+    that: ark_maps | default([]) | difference(ark_port_map.keys() | list) | length == 0
+    fail_msg: >-
+      Unknown map(s) in ark_maps:
+      {{ ark_maps | difference(ark_port_map.keys() | list) | join(', ') }}.
+      Valid names: {{ ark_port_map.keys() | list | join(', ') }}.
+
+- name: Deploy gamectl from upstream at the pinned ref
+  ansible.builtin.get_url:
+    url: "{{ gamectl_repo_raw }}/{{ gamectl_version }}/{{ gamectl_path }}"
     dest: /usr/local/bin/gamectl
     mode: "0755"
+    force: true                        # re-check upstream each run; changed only on diff
+    checksum: "{{ ('sha256:' + gamectl_checksum) if gamectl_checksum | length > 0 else omit }}"
 
 - name: Render /etc/gamectl.conf
   ansible.builtin.template:
@@ -40,15 +50,35 @@
 
 # --- Create each instance defined for this host, then enable + start it ---
 - name: Create instances from template
-  ansible.builtin.command: "gamectl create {{ item.key }}"
+  ansible.builtin.command: "gamectl create {{ item | lower }}"
   args:
-    creates: "{{ ark_root }}/instances/{{ item.key }}/ShooterGame/Binaries/Linux/ShooterGameServer"
-  loop: "{{ ark_instances | dict2items }}"
+    creates: "{{ ark_root }}/instances/{{ item | lower }}/ShooterGame/Binaries/Linux/ShooterGameServer"
+  loop: "{{ ark_maps }}"
 
 - name: Enable + start ark@<instance> units
   ansible.builtin.systemd:
-    name: "ark@{{ item.key }}"
+    name: "ark@{{ item | lower }}"
     enabled: true
     state: started
     daemon_reload: true
-  loop: "{{ ark_instances | dict2items }}"
+  loop: "{{ ark_maps }}"
+
+# --- Reconcile: retire instances on disk that are no longer declared --------
+- name: Find existing instances
+  ansible.builtin.find:
+    paths: "{{ ark_root }}/instances"
+    file_type: directory
+    recurse: false
+  register: gamectl_existing
+
+- name: Compute retired instances (on disk but not declared)
+  ansible.builtin.set_fact:
+    gamectl_retired: >-
+      {{ gamectl_existing.files | map(attribute='path') | map('basename')
+         | difference(ark_maps | map('lower') | list) }}
+
+- name: Retire undeclared instances (backup -> stop -> disable -> remove)
+  ansible.builtin.include_tasks: retire.yml
+  loop: "{{ gamectl_retired }}"
+  loop_control:
+    loop_var: retired_instance
