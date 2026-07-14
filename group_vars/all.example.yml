@@ -104,6 +104,14 @@ ark_retire_removes_data: true
 gamectl_version: "main"        # e.g. "v1.1" or a full commit SHA
 gamectl_checksum: ""
 
+# Steam beta branch for the ARK server (empty = live/default). Example:
+# "preaquatica" pins servers to the pre-Aquatica release (358.x) — required
+# when players run the preaquatica or linuxnative client branches; live-branch
+# (360.x) servers are silently HIDDEN from those clients. Client and server
+# major versions must match. Changing this triggers a full rollback download
+# on the next gamectl install/update.
+ark_branch: ""
+
 # --- NAS provisioning (the 'nas' play; TrueNAS via arensb.truenas) -----------
 nas_pool: tank
 nas_ark_parent: ark

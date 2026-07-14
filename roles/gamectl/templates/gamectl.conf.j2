@@ -13,6 +13,10 @@ STEAM_HOME="/home/{{ ark_user }}"
 ARK_APPID="{{ ark_appid }}"
 ARK_WORKSHOP_APPID="346110"
 
+## ---- Steam branch (empty = live). Clients must match the branch's major
+## version or these servers are hidden from their browser. -----------------
+ARK_BRANCH="{{ ark_branch }}"
+
 ## ---- Cluster & admin ----------------------------------------------------
 CLUSTER_ID="{{ cluster_id }}"
 ADMIN_PASSWORD="{{ admin_password }}"
