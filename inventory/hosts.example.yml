@@ -16,6 +16,6 @@ all:
         ansible_user: admin            # MUST match ADMIN_USER in netboot/.env
     nas:
       hosts:
-        fangtooth:                     # TrueNAS box (datasets + NFS exports)
+        nas01:                         # TrueNAS box (datasets + NFS exports)
           ansible_host: 192.168.1.15
           ansible_user: root           # TrueNAS middleware access

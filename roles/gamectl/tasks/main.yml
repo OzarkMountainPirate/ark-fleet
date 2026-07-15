@@ -61,6 +61,53 @@
   poll: 30
   changed_when: true
 
+# --- Branch reconciliation --------------------------------------------------
+# The install task above is guarded by the template existing, so on an already
+# built host it SKIPS — which means changing ark_branch would render a new
+# ARK_BRANCH into gamectl.conf and then never actually re-download anything.
+# The servers would keep running the old branch while the config claimed
+# otherwise, and clients on the declared branch would find them HIDDEN.
+# A marker file records the branch the template was actually built from; when
+# it disagrees with the declaration, apply it (stop -> update -> sync). The
+# "Enable + start" task below brings the instances back up.
+- name: Read the branch the template was built from
+  ansible.builtin.slurp:
+    src: "{{ ark_root }}/.deployed_branch"
+  register: gamectl_deployed_branch
+  failed_when: false
+
+- name: Detect branch drift
+  ansible.builtin.set_fact:
+    gamectl_branch_changed: >-
+      {{ (gamectl_deployed_branch.content | default('') | b64decode | trim)
+         != (ark_branch | default('') | trim) }}
+
+- name: Apply branch change
+  when:
+    - gamectl_template.stat.exists
+    - gamectl_branch_changed | bool
+  block:
+    - name: "Branch change: stop instances"
+      ansible.builtin.command: gamectl stop all
+      changed_when: true
+
+    - name: "Branch change: re-download server files on the new branch (long)"
+      ansible.builtin.command: gamectl update
+      async: "{{ gamectl_install_timeout }}"
+      poll: 30
+      changed_when: true
+
+    - name: "Branch change: sync new files into instances"
+      ansible.builtin.command: gamectl sync all
+      changed_when: true
+
+- name: Record the branch the template was built from
+  ansible.builtin.copy:
+    content: "{{ ark_branch | default('') }}\n"
+    dest: "{{ ark_root }}/.deployed_branch"
+    mode: "0644"
+  when: gamectl_template.stat.exists or not ansible_check_mode
+
 # --- Reconcile cluster mountpoint ownership now that arkserver exists ---
 - name: Fix cluster dir ownership (post-install)
   ansible.builtin.file:

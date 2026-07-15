@@ -70,6 +70,16 @@ backup_nfs_mount:    /mnt/ark-backups
 backup_nfs_opts:     "rw,hard,noatime,vers=4,x-systemd.automount,x-systemd.idle-timeout=600"
 backup_on_calendar:  "*-*-* 04:30:00"               # systemd OnCalendar, per host
 
+# --- Weekly maintenance (ark_update) -----------------------------------------
+# Sunday window: RCON countdown broadcasts, gamectl update (branch-pinned),
+# OS full-upgrade, reboot only if the OS requires it. Orders itself after the
+# backup service, so Sunday archives land before the world stops.
+update_enabled: true
+update_on_calendar: "Sun *-*-* 04:30:00"
+update_warn_minutes: [15, 5, 1]
+update_warn_message: "SERVER MAINTENANCE in {m} minute(s): world save + patching. Back shortly!"
+update_reboot: true
+
 # --- Base hardening ---------------------------------------------------------
 manage_firewall: true
 timezone: "America/Chicago"

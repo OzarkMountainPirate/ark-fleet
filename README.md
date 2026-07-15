@@ -58,7 +58,9 @@ roles/
   ark_deps/              i386 multiarch, steamcmd (non-free), lib32gcc-s1, builds mcrcon
   cluster_mount/         mounts the shared NFS cluster dir
   gamectl/               fetches gamectl from upstream at a pinned ref, renders /etc/gamectl.conf, install + create + enable units
-  ark_backup/            systemd timer -> save-safe gamectl backup -> rsync to TrueNAS
+  ark_backup/            systemd timer -> save-safe gamectl backup -> rsync to the NAS
+  ark_update/            Sunday maintenance: RCON countdown -> update -> patch -> reboot if needed
+  nas_ark_exports/       TrueNAS play: datasets, squash identity, LAN-only NFS exports
 .github/workflows/       GitHub Actions lint CI (yamllint, ansible-lint, shellcheck)
 ```
 
@@ -142,6 +144,14 @@ acheron:
   instance directory is removed (only if the backup succeeded;
   `ark_retire_removes_data: false` keeps data on disk instead).
 - **Swap a map:** both of the above in one edit + one run.
+- **Steam beta branch:** `ark_branch` in group_vars pins the server files to a
+  Steam branch (e.g. `preaquatica` for pre-Aquatica 358.x — required when
+  players run the preaquatica/linuxnative client branches; live-branch servers
+  are silently HIDDEN from them). The play records the deployed branch in
+  `{{ ark_root }}/.deployed_branch` and, on drift, applies the change itself:
+  stop -> re-download on the new branch (large) -> sync -> start. **Saves do
+  not survive a branch rollback** — wipe `SavedArks` and the cluster dir after
+  moving to an older branch. Client and server major versions must match.
 - **Mods:** edit the global `mods` list in group_vars, run the play, then
   restart instances (`ansible ark_fleet -a "gamectl restart all"`) — ARK's
   -automanagedmods fetches them at startup. Mods apply fleet-wide.

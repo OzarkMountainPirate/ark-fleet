@@ -15,3 +15,6 @@ gamectl_checksum: ""
 
 # Scale-down behavior; see group_vars. Backup always runs first regardless.
 ark_retire_removes_data: true
+
+# Steam beta branch for the server files (empty = live). See group_vars.
+ark_branch: ""
