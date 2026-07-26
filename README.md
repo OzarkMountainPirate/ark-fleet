@@ -144,6 +144,17 @@ acheron:
   instance directory is removed (only if the backup succeeded;
   `ark_retire_removes_data: false` keeps data on disk instead).
 - **Swap a map:** both of the above in one edit + one run.
+- **Rates (the boosted-server dial):** `ark_rate_multiplier: 1000` turns the
+  cluster into what an advertised 1000x server actually runs — the dial drives
+  a curve (`ark_rate_profile` in the gamectl role), not a blind constant:
+  linear knobs cap (harvest 500, loot quality 5, imprint 100 so one cuddle =
+  full imprint), interval knobs invert (mating/cuddle floors at 0.01), and
+  difficulty snaps to wild-150 (override to 10.0 for wild-300). `ark_rates`
+  overrides any single knob without touching the rest. GameUserSettings-class
+  values ship as launch options (immune to ARK's INI rewriting); breeding and
+  loot knobs render into each instance's Game.ini. Changes restart the
+  instances automatically. After raising difficulty, run
+  `gamectl rcon <instance> "DestroyWildDinos"` once per map.
 - **Steam beta branch:** `ark_branch` in group_vars pins the server files to a
   Steam branch (e.g. `preaquatica` for pre-Aquatica 358.x — required when
   players run the preaquatica/linuxnative client branches; live-branch servers

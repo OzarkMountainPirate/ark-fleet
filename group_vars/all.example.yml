@@ -70,6 +70,22 @@ backup_nfs_mount:    /mnt/ark-backups
 backup_nfs_opts:     "rw,hard,noatime,vers=4,x-systemd.automount,x-systemd.idle-timeout=600"
 backup_on_calendar:  "*-*-* 04:30:00"               # systemd OnCalendar, per host
 
+# --- Boosted-server rates (the master dial) ----------------------------------
+# 1 = vanilla (nothing emitted). 100/300/1000 = a sane boosted server matching
+# what advertised NNNx servers actually run: linear knobs follow the dial up
+# to per-knob caps, interval knobs INVERT (lower = faster), and thresholds
+# like difficulty snap to sane values. The full curve lives in the gamectl
+# role defaults (ark_rate_profile). Changes auto-apply: conf + Game.ini
+# re-render, start scripts regenerate, instances restart.
+ark_rate_multiplier: 1
+
+# Per-knob overrides (win over the dial; keys must exist in the profile):
+#   OverrideOfficialDifficulty: 10.0    # wild level 300 instead of 150
+#   BabyMatureSpeedMultiplier: 50       # slower babies, more imprint window
+# After changing difficulty, run once per map so wild dinos respawn at the
+# new levels:  gamectl rcon <instance> "DestroyWildDinos"
+ark_rates: {}
+
 # --- Weekly maintenance (ark_update) -----------------------------------------
 # Sunday window: RCON countdown broadcasts, gamectl update (branch-pinned),
 # OS full-upgrade, reboot only if the OS requires it. Orders itself after the

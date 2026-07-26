@@ -17,6 +17,10 @@ ARK_WORKSHOP_APPID="346110"
 ## version or these servers are hidden from their browser. -----------------
 ARK_BRANCH="{{ ark_branch }}"
 
+## Extra ?Key=Value launch options (rate multipliers; managed by ark-fleet's
+## rate engine -- master dial ark_rate_multiplier + ark_rates overrides).
+ARK_EXTRA_QUERY="{% for k, v in gamectl_rates.items() if v.file == 'query' %}?{{ k }}={{ v.value }}{% endfor %}"
+
 ## ---- Cluster & admin ----------------------------------------------------
 CLUSTER_ID="{{ cluster_id }}"
 ADMIN_PASSWORD="{{ admin_password }}"

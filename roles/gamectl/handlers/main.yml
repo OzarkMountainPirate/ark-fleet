@@ -2,3 +2,7 @@
 - name: Sync instances
   ansible.builtin.command: "gamectl sync all"
   become: true
+
+- name: Restart instances
+  ansible.builtin.command: gamectl restart all
+  changed_when: true

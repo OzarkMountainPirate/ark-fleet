@@ -18,3 +18,42 @@ ark_retire_removes_data: true
 
 # Steam beta branch for the server files (empty = live). See group_vars.
 ark_branch: ""
+
+# --- Boosted-server rate engine ----------------------------------------------
+# ark_rate_multiplier is the master dial (1 = vanilla). Each knob follows the
+# profile below rather than the raw number, because a literal 1000x-everything
+# server is unplayable: interval-type settings INVERT (lower = faster), and
+# several knobs break past their caps (loot quality >5 corrupts items; babies
+# maturing >~100x finish before a single imprint cuddle is possible).
+# Modes: linear  -> min(M, cap)          (higher = faster/more)
+#        inverse -> max(1/M, floor)      (lower  = faster)
+#        boost   -> fixed value once M > 1 (thresholds like difficulty)
+# ark_rates overrides any profile key with an explicit value (unknown keys
+# fail fast rather than silently doing nothing). At M == 1 with no overrides,
+# nothing is emitted at all -- a true vanilla server.
+ark_rate_multiplier: 1
+ark_rates: {}
+ark_rate_profile:
+  # GameUserSettings-class -> passed as ?Key=Value launch options (override
+  # the INI, immune to ARK rewriting GameUserSettings.ini on shutdown)
+  XPMultiplier:                        {file: query, mode: linear, cap: 1000}
+  TamingSpeedMultiplier:               {file: query, mode: linear, cap: 1000}
+  HarvestAmountMultiplier:             {file: query, mode: linear, cap: 500}
+  ItemStackSizeMultiplier:             {file: query, mode: linear, cap: 50}
+  CropGrowthSpeedMultiplier:           {file: query, mode: linear, cap: 100}
+  ResourcesRespawnPeriodMultiplier:    {file: query, mode: inverse, floor: 0.1}
+  PlayerCharacterFoodDrainMultiplier:  {file: query, mode: inverse, floor: 0.5}
+  PlayerCharacterWaterDrainMultiplier: {file: query, mode: inverse, floor: 0.5}
+  DifficultyOffset:                    {file: query, mode: boost, value: 1.0}
+  OverrideOfficialDifficulty:          {file: query, mode: boost, value: 5.0}
+  # Game.ini-class -> templated into each instance's Game.ini
+  MatingIntervalMultiplier:            {file: game, mode: inverse, floor: 0.01}
+  MatingSpeedMultiplier:               {file: game, mode: linear, cap: 100}
+  LayEggIntervalMultiplier:            {file: game, mode: inverse, floor: 0.01}
+  EggHatchSpeedMultiplier:             {file: game, mode: linear, cap: 300}
+  BabyMatureSpeedMultiplier:           {file: game, mode: linear, cap: 100}
+  BabyCuddleIntervalMultiplier:        {file: game, mode: inverse, floor: 0.01}
+  BabyImprintAmountMultiplier:         {file: game, mode: linear, cap: 100}
+  BabyFoodConsumptionSpeedMultiplier:  {file: game, mode: inverse, floor: 0.3}
+  SupplyCrateLootQualityMultiplier:    {file: game, mode: linear, cap: 5}
+  FishingLootQualityMultiplier:        {file: game, mode: linear, cap: 5}
