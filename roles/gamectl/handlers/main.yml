@@ -4,5 +4,7 @@
   become: true
 
 - name: Restart instances
-  ansible.builtin.command: gamectl restart all
+  ansible.builtin.shell: |
+    systemctl reset-failed 'ark@*' 2>/dev/null || true
+    gamectl restart all
   changed_when: true

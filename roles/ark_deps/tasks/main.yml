@@ -46,7 +46,9 @@
   ansible.builtin.apt:
     name:
       - steamcmd
-      - lib32gcc-s1          # present on Debian 12+/13
+      - lib32gcc-s1
+      - perl                          # gamectl mods: .z extraction + .mod build
+      - libcompress-raw-zlib-perl     # Compress::Raw::Zlib for the above          # present on Debian 12+/13
       - lib32stdc++6
       - libc6:i386
       - rsync

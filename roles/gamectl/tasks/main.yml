@@ -142,6 +142,21 @@
     mode: "0644"
   when: gamectl_template.stat.exists or not ansible_check_mode
 
+# --- Workshop mods: pre-install into the template ----------------------------
+# The engine's -automanagedmods SEGVs on modern Linux (waitid EINVAL), so
+# gamectl downloads/extracts mods itself. Idempotent: already-installed mods
+# are skipped; 'installed' in the output marks real work and triggers
+# sync + restart via handlers. Downloads can be large (Primal Fear is GBs).
+- name: Install workshop mods (long on first run)
+  ansible.builtin.command: gamectl mods
+  register: gamectl_mods_out
+  changed_when: "'installed' in gamectl_mods_out.stdout"
+  async: 7200
+  poll: 30
+  notify:
+    - Sync instances
+    - Restart instances
+
 # --- Reconcile cluster mountpoint ownership now that arkserver exists ---
 - name: Fix cluster dir ownership (post-install)
   ansible.builtin.file:

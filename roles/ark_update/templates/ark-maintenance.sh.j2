@@ -25,7 +25,9 @@ sleep $(( prev * 60 ))
 
 # --- maintenance -------------------------------------------------------------
 /usr/local/bin/gamectl stop all
-/usr/local/bin/gamectl update          # steamcmd, with v1.1 retry logic
+/usr/local/bin/gamectl update          # steamcmd, with retry logic
+/usr/local/bin/gamectl mods force      # deliberate weekly mod refresh (the
+                                       # only time mods update; boots do not)
 /usr/local/bin/gamectl sync all
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get -y -qq full-upgrade

@@ -27,6 +27,9 @@ ADMIN_PASSWORD="{{ admin_password }}"
 
 ## ---- Mods ---------------------------------------------------------------
 MODS="{{ mods | join(',') }}"
+## Engine-side mod management stays OFF (SEGV on modern Linux); gamectl
+## pre-installs the MODS list instead.
+ARK_AUTOMANAGED_MODS="false"
 
 ## ---- Instances (this host only; derived from ark_maps + ark_port_map) ----
 ## Format: [key]="MapName GamePort QueryPort RconPort"

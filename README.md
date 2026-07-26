@@ -163,9 +163,13 @@ acheron:
   stop -> re-download on the new branch (large) -> sync -> start. **Saves do
   not survive a branch rollback** — wipe `SavedArks` and the cluster dir after
   moving to an older branch. Client and server major versions must match.
-- **Mods:** edit the global `mods` list in group_vars, run the play, then
-  restart instances (`ansible ark_fleet -a "gamectl restart all"`) — ARK's
-  -automanagedmods fetches them at startup. Mods apply fleet-wide.
+- **Mods:** the global `mods` list declares Workshop IDs (order = load order).
+  The play pre-installs them into the template via `gamectl mods` — steamcmd
+  download, `.z` extraction, `.mod` generation (ported from ark-server-tools) —
+  because the engine's own `-automanagedmods` SEGVs on modern Linux. Changes
+  auto-apply: install, sync, restart. Mods update ONLY during the Sunday
+  maintenance window (`gamectl mods force`), never on ordinary boots — a mod
+  author's bad Tuesday can't take your cluster down until you let it.
 
 Retired maps' ufw rules are not auto-removed (harmless on LAN; prune with
 `ufw status numbered` if desired). Router port forwards are manual either way.
