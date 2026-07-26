@@ -7,6 +7,38 @@
       {{ ark_maps | difference(ark_port_map.keys() | list) | join(', ') }}.
       Valid names: {{ ark_port_map.keys() | list | join(', ') }}.
 
+# --- Rate engine: compute effective multipliers from the master dial ---------
+# MUST run before the conf render below — the gamectl.conf template emits
+# ARK_EXTRA_QUERY from gamectl_rates. (Learned the hard way: undefined-var
+# fatal at render when this sat at the bottom of the role.)
+- name: Assert rate overrides only touch known profile keys
+  ansible.builtin.assert:
+    that: ark_rates.keys() | difference(ark_rate_profile.keys() | list) | length == 0
+    fail_msg: >-
+      Unknown key(s) in ark_rates:
+      {{ ark_rates.keys() | difference(ark_rate_profile.keys() | list) | join(', ') }}.
+      Keys must exist in ark_rate_profile (silently ignored settings help nobody).
+
+- name: Compute effective rates from the profile curve
+  ansible.builtin.set_fact:
+    gamectl_rates: >-
+      {%- set m = ark_rate_multiplier | float -%}
+      {%- set out = {} -%}
+      {%- for key, p in ark_rate_profile.items() -%}
+        {%- if key in ark_rates -%}
+          {%- set _ = out.update({key: {'file': p.file, 'value': ark_rates[key]}}) -%}
+        {%- elif m > 1 -%}
+          {%- if p.mode == 'linear' -%}
+            {%- set _ = out.update({key: {'file': p.file, 'value': [m, p.cap | float] | min}}) -%}
+          {%- elif p.mode == 'inverse' -%}
+            {%- set _ = out.update({key: {'file': p.file, 'value': [1 / m, p.floor | float] | max | round(4)}}) -%}
+          {%- elif p.mode == 'boost' -%}
+            {%- set _ = out.update({key: {'file': p.file, 'value': p.value}}) -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ out }}
+
 - name: Deploy gamectl from upstream at the pinned ref
   ansible.builtin.get_url:
     url: "{{ gamectl_repo_raw }}/{{ gamectl_version }}/{{ gamectl_path }}"
@@ -45,7 +77,9 @@
     owner: root
     group: root
     mode: "0640"                       # contains ADMIN_PASSWORD
-  notify: Sync instances
+  notify:
+    - Sync instances
+    - Restart instances
 
 # --- First install: creates arkserver user, /opt/ark tree, downloads the
 #     ~14GB server template. Guarded so it only runs once. ---
@@ -124,6 +158,16 @@
   args:
     creates: "{{ ark_root }}/instances/{{ item | lower }}/ShooterGame/Binaries/Linux/ShooterGameServer"
   loop: "{{ ark_maps }}"
+
+- name: Template Game.ini for each instance
+  ansible.builtin.template:
+    src: Game.ini.j2
+    dest: "{{ ark_root }}/instances/{{ item | lower }}/ShooterGame/Saved/Config/LinuxServer/Game.ini"
+    owner: "{{ ark_user }}"
+    group: "{{ ark_user }}"
+    mode: "0644"
+  loop: "{{ ark_maps }}"
+  notify: Restart instances
 
 - name: Enable + start ark@<instance> units
   ansible.builtin.systemd:
