@@ -1,6 +1,6 @@
 ; MANAGED BY ANSIBLE (ark-fleet rate engine) -- do not edit by hand.
 ; Rendered from ark_rate_multiplier={{ ark_rate_multiplier }} + ark_rates overrides.
 [/script/shootergame.shootergamemode]
-{% for k, v in gamectl_rates.items() if v.file == 'game' %}
+{% for k, v in gamectl_rates.items() | sort if v.file == 'game' %}
 {{ k }}={{ v.value }}
 {% endfor %}

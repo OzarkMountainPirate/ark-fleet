@@ -1,6 +1,6 @@
 #############################################################
 ## gamectl.conf — MANAGED BY ANSIBLE (ark-fleet). Do not edit by hand.
-## Host: {{ inventory_hostname }}   Rendered: {{ ansible_date_time.iso8601 | default('n/a') }}
+## Host: {{ inventory_hostname }}
 #############################################################
 
 ## ---- Paths & identity ---------------------------------------------------
@@ -19,7 +19,7 @@ ARK_BRANCH="{{ ark_branch }}"
 
 ## Extra ?Key=Value launch options (rate multipliers; managed by ark-fleet's
 ## rate engine -- master dial ark_rate_multiplier + ark_rates overrides).
-ARK_EXTRA_QUERY="{% for k, v in gamectl_rates.items() if v.file == 'query' %}?{{ k }}={{ v.value }}{% endfor %}"
+ARK_EXTRA_QUERY="{% for k, v in gamectl_rates.items() | sort if v.file == 'query' %}?{{ k }}={{ v.value }}{% endfor %}"
 
 ## ---- Cluster & admin ----------------------------------------------------
 CLUSTER_ID="{{ cluster_id }}"
