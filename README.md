@@ -166,10 +166,18 @@ acheron:
 - **Mods:** the global `mods` list declares Workshop IDs (order = load order).
   The play pre-installs them into the template via `gamectl mods` — steamcmd
   download, `.z` extraction, `.mod` generation (ported from ark-server-tools) —
-  because the engine's own `-automanagedmods` SEGVs on modern Linux. Changes
-  auto-apply: install, sync, restart. Mods update ONLY during the Sunday
-  maintenance window (`gamectl mods force`), never on ordinary boots — a mod
-  author's bad Tuesday can't take your cluster down until you let it.
+  because the engine's own `-automanagedmods` SEGVs on modern Linux. Mods
+  update ONLY during the Sunday maintenance window (`gamectl mods force`),
+  never on ordinary boots, so a mod author's bad Tuesday can't take the
+  cluster down until you let it.
+  **Adding mods is safe; REMOVING them is destructive.** A save that contains
+  entities or structures from a mod cannot load once that mod is gone — the
+  server dies deserializing the world (`Bad name index` in `LinkerLoad`,
+  SEGV ~25s in, empty ShooterGame.log). Recovery is a `SavedArks` wipe. So do
+  not bisect a mod list against a world you care about: settle the list, then
+  start the world. Check BOTH hosts after any mod change — `gamectl status`
+  reports restart count and last-start time precisely because a crash-looping
+  instance still prints "active" between deaths.
 
 Retired maps' ufw rules are not auto-removed (harmless on LAN; prune with
 `ufw status numbered` if desired). Router port forwards are manual either way.

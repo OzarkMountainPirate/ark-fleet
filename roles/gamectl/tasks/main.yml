@@ -77,9 +77,7 @@
     owner: root
     group: root
     mode: "0640"                       # contains ADMIN_PASSWORD
-  notify:
-    - Sync instances
-    - Restart instances
+  notify: Apply changes and restart instances
 
 # --- First install: creates arkserver user, /opt/ark tree, downloads the
 #     ~14GB server template. Guarded so it only runs once. ---
@@ -150,12 +148,13 @@
 - name: Install workshop mods (long on first run)
   ansible.builtin.command: gamectl mods
   register: gamectl_mods_out
-  changed_when: "'installed' in gamectl_mods_out.stdout"
+  # "installed" alone also matches the summary's "0 installed, 21 up to date",
+  # so 1.5.2 reported changed on EVERY run and bounced the cluster every play.
+  # Require a nonzero count: only real installs justify a restart.
+  changed_when: gamectl_mods_out.stdout is search('[1-9][0-9]* installed')
   async: 7200
   poll: 30
-  notify:
-    - Sync instances
-    - Restart instances
+  notify: Apply changes and restart instances
 
 # --- Reconcile cluster mountpoint ownership now that arkserver exists ---
 - name: Fix cluster dir ownership (post-install)
@@ -182,7 +181,7 @@
     group: "{{ ark_user }}"
     mode: "0644"
   loop: "{{ ark_maps }}"
-  notify: Restart instances
+  notify: Apply changes and restart instances
 
 - name: Enable + start ark@<instance> units
   ansible.builtin.systemd:

@@ -1,10 +1,17 @@
 ---
-- name: Sync instances
-  ansible.builtin.command: "gamectl sync all"
-  become: true
-
-- name: Restart instances
+# One handler for the whole apply cycle, deliberately. gamectl sync refuses to
+# touch a RUNNING instance (correctly -- rsync under a live server is how you
+# corrupt one), so the old "sync then restart" pair silently rolled out
+# nothing: sync skipped every instance the play had just started, and only the
+# restart happened. Stop first, sync into stopped instances, then start.
+# ARK also rewrites GameUserSettings.ini on shutdown, so ActiveMods only sticks
+# when it is written while stopped -- which is exactly what sync does here.
+- name: Apply changes and restart instances
   ansible.builtin.shell: |
+    set -euo pipefail
+    # crash-looped units sit at the start limit and refuse to start again
     systemctl reset-failed 'ark@*' 2>/dev/null || true
-    gamectl restart all
+    gamectl stop all
+    gamectl sync all
+    gamectl start all
   changed_when: true
