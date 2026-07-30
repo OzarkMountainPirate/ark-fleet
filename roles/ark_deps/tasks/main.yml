@@ -3,11 +3,19 @@
 # steamcmd package, so the script itself is unchanged; only the package
 # sourcing differs from Ubuntu (non-free vs multiverse).
 
+# dpkg --add-architecture is silent and exits 0 whether or not the arch was
+# already enabled, so the old stderr-sniffing changed_when reported changed on
+# EVERY run. Read the current state first and only act when it is missing.
+- name: Check enabled foreign architectures
+  ansible.builtin.command: dpkg --print-foreign-architectures
+  register: ark_deps_foreign_arch
+  changed_when: false
+
 - name: Enable i386 architecture (SteamCMD is 32-bit)
   ansible.builtin.command: dpkg --add-architecture i386
+  when: "'i386' not in ark_deps_foreign_arch.stdout_lines"
   register: ark_deps_add_arch
-  changed_when: "'already' not in (ark_deps_add_arch.stderr | default(''))"
-  failed_when: false
+  changed_when: true
 
 # steamcmd lives in non-free on Debian. Add contrib/non-free/non-free-firmware
 # as a separate deb822 .sources file (apt merges it with the base sources).
@@ -26,7 +34,7 @@
 - name: Refresh apt cache after enabling non-free
   ansible.builtin.apt:
     update_cache: true
-  when: ark_deps_nonfree_src is changed
+  when: ark_deps_nonfree_src is changed or ark_deps_add_arch is changed
 
 - name: Pre-accept SteamCMD EULA (non-interactive)
   ansible.builtin.debconf:

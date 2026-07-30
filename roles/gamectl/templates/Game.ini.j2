@@ -1,6 +1,11 @@
+{#- ARK rewrites this file on shutdown and NORMALISES it: blank lines are
+    stripped, comments and ordering are preserved. So the rendered output must
+    be blank-line free, or every play sees a diff, reports changed, and bounces
+    the cluster. That is why the loop body sits on the same line as the tag,
+    and why this explanation is a Jinja comment (invisible in the output)
+    rather than an ini comment. -#}
 ; MANAGED BY ANSIBLE (ark-fleet rate engine) -- do not edit by hand.
 ; Rendered from ark_rate_multiplier={{ ark_rate_multiplier }} + ark_rates overrides.
 [/script/shootergame.shootergamemode]
-{% for k, v in gamectl_rates.items() | sort if v.file == 'game' %}
-{{ k }}={{ v.value }}
+{% for k, v in gamectl_rates.items() | sort if v.file == 'game' %}{{ k }}={{ v.value }}
 {% endfor %}
