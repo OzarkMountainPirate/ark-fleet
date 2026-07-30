@@ -151,7 +151,12 @@
   # "installed" alone also matches the summary's "0 installed, 21 up to date",
   # so 1.5.2 reported changed on EVERY run and bounced the cluster every play.
   # Require a nonzero count: only real installs justify a restart.
-  changed_when: gamectl_mods_out.stdout is search('[1-9][0-9]* installed')
+  # Fire on real installs OR prunes. "installed" alone would match the
+  # summary's "0 installed, 21 up to date"; a prune with no install still has
+  # to sync+restart, or the removal never reaches the instances.
+  changed_when: >-
+    gamectl_mods_out.stdout is search('[1-9][0-9]* installed')
+    or gamectl_mods_out.stdout is search('pruned [1-9][0-9]* undeclared')
   async: 7200
   poll: 30
   notify: Apply changes and restart instances
@@ -173,14 +178,40 @@
     creates: "{{ ark_root }}/instances/{{ item | lower }}/ShooterGame/Binaries/Linux/ShooterGameServer"
   loop: "{{ ark_maps }}"
 
-- name: Template Game.ini for each instance
+# ARK rewrites Game.ini on shutdown and normalises it (it strips ';' comment
+# lines), so templating directly onto the live file reports changed on EVERY
+# run, fires the handler, and bounces the cluster -- forever. Rather than
+# reverse-engineer ARK's exact normalisation (two guesses, two misses), stage
+# the render to a file only Ansible ever touches. THAT file is genuinely
+# idempotent, and the live copy is written only when the staged content
+# changes. ARK preserves the setting values, so its cosmetic rewrite of the
+# live file between runs is harmless and deliberately not reverted.
+- name: Ensure the managed-config staging dir exists
+  ansible.builtin.file:
+    path: "{{ ark_root }}/.managed"
+    state: directory
+    mode: "0755"
+
+- name: Stage Game.ini per instance (outside the sync tree, so --delete cannot eat it)
   ansible.builtin.template:
     src: Game.ini.j2
-    dest: "{{ ark_root }}/instances/{{ item | lower }}/ShooterGame/Saved/Config/LinuxServer/Game.ini"
+    dest: "{{ ark_root }}/.managed/{{ item | lower }}.game.ini"
+    mode: "0644"
+  loop: "{{ ark_maps }}"
+  register: gamectl_game_ini
+
+- name: Install Game.ini into instances when the managed content changed
+  ansible.builtin.copy:
+    src: "{{ ark_root }}/.managed/{{ item.item | lower }}.game.ini"
+    dest: "{{ ark_root }}/instances/{{ item.item | lower }}/ShooterGame/Saved/Config/LinuxServer/Game.ini"
+    remote_src: true
     owner: "{{ ark_user }}"
     group: "{{ ark_user }}"
     mode: "0644"
-  loop: "{{ ark_maps }}"
+  loop: "{{ gamectl_game_ini.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item is changed
   notify: Apply changes and restart instances
 
 - name: Enable + start ark@<instance> units

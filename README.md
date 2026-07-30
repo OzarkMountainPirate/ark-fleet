@@ -170,6 +170,8 @@ acheron:
   update ONLY during the Sunday maintenance window (`gamectl mods force`),
   never on ordinary boots, so a mod author's bad Tuesday can't take the
   cluster down until you let it.
+  Removing an ID from the list PRUNES that mod from disk on the next run
+  (declared state is truth), then syncs and restarts.
   **Adding mods is safe; REMOVING them is destructive.** A save that contains
   entities or structures from a mod cannot load once that mod is gone — the
   server dies deserializing the world (`Bad name index` in `LinkerLoad`,

@@ -1,9 +1,9 @@
-{#- ARK rewrites this file on shutdown and NORMALISES it: blank lines are
-    stripped, comments and ordering are preserved. So the rendered output must
-    be blank-line free, or every play sees a diff, reports changed, and bounces
-    the cluster. That is why the loop body sits on the same line as the tag,
-    and why this explanation is a Jinja comment (invisible in the output)
-    rather than an ini comment. -#}
+{#- Ansible's template module sets trim_blocks=True, so block tags do not leave
+    stray newlines here. Do NOT template this straight onto the live Game.ini:
+    ARK rewrites that file on shutdown and strips ';' comments, so the task
+    would report changed on every run and bounce the cluster. The role stages
+    this to {{ ark_root }}/.managed/ and installs it only when the staged
+    content actually changes. -#}
 ; MANAGED BY ANSIBLE (ark-fleet rate engine) -- do not edit by hand.
 ; Rendered from ark_rate_multiplier={{ ark_rate_multiplier }} + ark_rates overrides.
 [/script/shootergame.shootergamemode]
