@@ -27,9 +27,9 @@ methodology being practiced.
 
 ```
         Router/firewall (192.168.1.1)       ── port-forwards game+query UDP ──┐
-                                                                            │
-  Host #1  acheron  192.168.1.21   ark@crystalisles   (CrystalIsles)  ◄─────┤
-  Host #2  cocytus  192.168.1.22   ark@fjordur        (Fjordur)       ◄─────┘
+                                                                              │
+  Host #1  acheron  192.168.1.21   ark@ragnarok       (Ragnarok)  ◄───────────┤
+  Host #2  cocytus  192.168.1.22   ark@fjordur        (Fjordur)   ◄───────────┘
 
   Both mount the SAME cluster dir over NFS  ──►  a NAS (NFS server, 192.168.1.15)
      /opt/ark/cluster  =  192.168.1.15:/mnt/tank/ark/cluster
@@ -38,8 +38,7 @@ methodology being practiced.
 One map per box, one shared `CLUSTER_ID`. The **shared NFS cluster directory is
 load-bearing**: ARK writes cross-server transfer data to `ARK_ROOT/cluster`, and
 on a multi-host cluster that directory must be the same storage on both hosts or
-uploads on one map never appear on the other. That's the single thing most
-homelab ARK clusters get wrong.
+uploads on one map never appear on the other.
 
 ## Layout
 
@@ -135,7 +134,7 @@ inventory only declares which maps each host runs:
 
 ```yaml
 acheron:
-  ark_maps: [Ragnarok, Valguero]
+  ark_maps: [Ragnarok, Fjordur]
 ```
 
 - **Add a map:** add its name, run the play. Instance is created from the
