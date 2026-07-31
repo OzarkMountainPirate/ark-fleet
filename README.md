@@ -89,12 +89,12 @@ in [`bootstrap/README.md`](bootstrap/README.md) if you ever want it.)
 ansible-galaxy collection install -r requirements.yml
 
 # 1. environment config (live copies are gitignored)
-cp inventory/hosts.example.yml inventory/hosts.yml     # your IPs + ansible_user
-cp group_vars/all.example.yml group_vars/all/main.yml    # NFS/backup/cluster settings
-cp netboot/.env.example netboot/.env                   # PXE stack + installer identity
+mkdir -p group_vars/all
+cp inventory/hosts.example.yml inventory/hosts.yml       # your IPs + ansible_user
+cp group_vars/all.example.yml group_vars/all/main.yml    # maps, rates, mods, NAS
+cp netboot/.env.example netboot/.env                     # PXE stack + installer identity
 
 # 2. secrets
-mkdir -p group_vars/all
 cp group_vars/vault.example.yml group_vars/all/vault.yml
 $EDITOR group_vars/all/vault.yml     # set a strong vault_admin_password
 ansible-vault encrypt group_vars/all/vault.yml
@@ -103,8 +103,8 @@ export ANSIBLE_VAULT_PASSWORD_FILE=$PWD/.vault_pass   # ansible.cfg deliberately
 # doesn't reference the file (a missing referenced file breaks CI and fresh
 # clones) — set this per shell, or add it to your direnv/.bashrc for the repo
 
-# (phase one needs no NAS — cluster NFS + off-box backup default to off
-#  in group_vars/all.yml; flip them on later when the exports exist)
+# (no NAS yet? cluster NFS + off-box backup can be left off in
+#  group_vars/all/main.yml and flipped on once the exports exist)
 
 # 3. gamectl deploys from its upstream repo at the ref pinned in group_vars
 #    (gamectl_version). Updating gamectl = commit upstream, bump the pin here.
@@ -120,9 +120,10 @@ Subsequent runs are fast and idempotent.
 ## Day-two ops
 
 ```bash
-ansible-playbook site.yml --tags gamectl -l cocytus   # re-render conf, sync
-ansible all -m command -a "gamectl status"            # fleet status
-ansible all -m command -a "gamectl update"            # patch template (then sync)
+ansible-playbook site.yml --tags gamectl -l cocytus     # re-render conf, sync
+ansible ark_fleet -a "gamectl status"                  # fleet status + restart counts
+ansible ark_fleet -a "gamectl stop all"                # then update, then sync
+ansible ark_fleet -B 7200 -P 60 -a "gamectl update"    # patch template (long)
 ```
 RCON, mods, and per-instance control are all `gamectl` on the box; Ansible only
 owns provisioning + config + lifecycle timers.
@@ -184,6 +185,49 @@ acheron:
 Retired maps' ufw rules are not auto-removed (harmless on LAN; prune with
 `ufw status numbered` if desired). Router port forwards are manual either way.
 
+## Common operations
+
+```bash
+# add a map            edit ark_maps in inventory, then:
+ansible-playbook site.yml
+
+# turn the cluster into a 300x server
+$EDITOR group_vars/all/main.yml         # ark_rate_multiplier: 300
+ansible-playbook site.yml
+ansible acheron -a 'gamectl rcon ragnarok "DestroyWildDinos"'   # per map, if difficulty changed
+
+# add mods (safe) — order in the list IS load order
+$EDITOR group_vars/all/main.yml         # mods: [839162288, ...]
+ansible-playbook site.yml               # downloads can take a long while
+ansible ark_fleet -a "gamectl status"   # RESTARTS must stay 0, on BOTH hosts
+
+# remove mods (destructive to existing saves — see TROUBLESHOOTING.md)
+$EDITOR group_vars/all/main.yml
+ansible-playbook site.yml               # prunes from disk, syncs, restarts
+
+# run the weekly maintenance window by hand (broadcasts a countdown in-game)
+ansible acheron -a "systemctl start ark-maintenance.service"
+
+# force a backup now, and check it landed off-box
+ansible acheron -a "systemctl start ark-backup.service"
+ssh root@<nas> ls -la /mnt/<pool>/ark/backups/acheron/
+
+# verify the deployed toolkit matches the pin
+ansible ark_fleet -a "gamectl version"
+```
+
+A plain `ansible-playbook site.yml` with nothing changed is a no-op: zero
+changed tasks, no handlers, no restarts. If a run reports changes when you
+changed nothing, that is a bug worth chasing — it means something is rewriting
+managed state behind the play.
+
+## When something breaks
+
+See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — crash loops, `Bad name
+index` corruption, mod bisection, getting back to a known-good baseline, and
+how to read ARK's exit signals (`ABRT` on a clean shutdown is normal;
+`SEGV` is not).
+
 ## Router port forwards
 
 Per instance, forward **UDP GamePort and QueryPort** to that host's LAN IP.
@@ -191,7 +235,7 @@ Keep **RCON (TCP) off the internet** — it's LAN-only by design.
 
 | Host    | Map          | Game (UDP) | Query (UDP) | RCON (LAN only) |
 |---------|--------------|-----------:|------------:|----------------:|
-| acheron | CrystalIsles |       7795 |       27060 |           27160 |
+| acheron | Ragnarok     |       7791 |       27058 |           27158 |
 | cocytus | Fjordur      |       7799 |       27062 |           27162 |
 
 ## CI (lint on push)
@@ -206,8 +250,10 @@ Actions — no self-hosted infrastructure:
   conventions. Config in `.ansible-lint`, with each skipped rule justified
   inline.
 - **shellcheck** — static analysis for the shell scripts (`netboot/setup.sh`,
-  `bootstrap/build-iso.sh`, the vendored `gamectl`): quoting bugs, unset
-  variables, portability traps. Config in `.shellcheckrc`.
+  `bootstrap/build-iso.sh`): quoting bugs, unset variables, portability traps.
+  Config in `.shellcheckrc`. `gamectl` itself is not vendored here — it is
+  fetched at a pinned tag and checksum-verified at deploy time, and linted in
+  its own repo.
 
 There's nothing to compile, so lint IS the test suite: it can't prove a deploy
 will succeed, but it catches the class of typo that would otherwise only
