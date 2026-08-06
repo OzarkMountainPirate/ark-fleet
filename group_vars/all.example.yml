@@ -127,8 +127,8 @@ ark_retire_removes_data: true
 # gamectl deploys from its upstream repo at this ref. Bump deliberately;
 # a tag or commit SHA keeps deploys reproducible. Optional sha256 pin:
 #   curl -sL <raw-url-at-ref> | sha256sum
-gamectl_version: "main"        # e.g. "v1.1" or a full commit SHA
-gamectl_checksum: ""
+gamectl_version: "v1.6.2"        # e.g. "v1.1" or a full commit SHA
+gamectl_checksum: "3f1ee1dcd5d6e9f67647a0abca662ee51757901bf7023b00ea5b59b9293b71dd"
 
 # Steam beta branch for the ARK server (empty = live/default). Example:
 # "preaquatica" pins servers to the pre-Aquatica release (358.x) — required

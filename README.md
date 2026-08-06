@@ -250,9 +250,8 @@ Actions — no self-hosted infrastructure:
   inline.
 - **shellcheck** — static analysis for the shell scripts (`netboot/setup.sh`,
   `bootstrap/build-iso.sh`): quoting bugs, unset variables, portability traps.
-  Config in `.shellcheckrc`. `gamectl` itself is not vendored here — it is
-  fetched at a pinned tag and checksum-verified at deploy time, and linted in
-  its own repo.
+  `gamectl` itself is not vendored here — it is fetched at a pinned tag and 
+  checksum-verified at deploy time, and linted in its own repo.
 
 There's nothing to compile, so lint IS the test suite: it can't prove a deploy
 will succeed, but it catches the class of typo that would otherwise only
