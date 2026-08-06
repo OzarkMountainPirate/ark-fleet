@@ -25,7 +25,7 @@ methodology being practiced.
 
 ## Topology
 
-```
+```text
         Router/firewall (192.168.1.1)       ── port-forwards game+query UDP ──┐
                                                                               │
   Host #1  acheron  192.168.1.21   ark@ragnarok       (Ragnarok)  ◄───────────┤
@@ -42,7 +42,7 @@ uploads on one map never appear on the other.
 
 ## Layout
 
-```
+```text
 netboot/                 reusable PXE stack: dnsmasq proxyDHCP + TFTP + HTTP (no USB)
 bootstrap/               the Debian 13 preseed (served by netboot) + USB/ISO fallback
 ansible.cfg              vault password file, sudo, inventory path
@@ -124,6 +124,7 @@ ansible ark_fleet -a "gamectl status"                  # fleet status + restart 
 ansible ark_fleet -a "gamectl stop all"                # then update, then sync
 ansible ark_fleet -B 7200 -P 60 -a "gamectl update"    # patch template (long)
 ```
+
 RCON, mods, and per-instance control are all `gamectl` on the box; Ansible only
 owns provisioning + config + lifecycle timers.
 
@@ -250,10 +251,16 @@ Actions — no self-hosted infrastructure:
   inline.
 - **shellcheck** — static analysis for the shell scripts (`netboot/setup.sh`,
   `bootstrap/build-iso.sh`): quoting bugs, unset variables, portability traps.
-  `gamectl` itself is not vendored here — it is fetched at a pinned tag and 
+  `gamectl` itself is not vendored here — it is fetched at a pinned tag and
   checksum-verified at deploy time, and linted in its own repo.
 
 There's nothing to compile, so lint IS the test suite: it can't prove a deploy
 will succeed, but it catches the class of typo that would otherwise only
 surface mid-playbook-run against a live host. Red X on a commit = don't deploy
 that commit.
+
+## License
+
+Copyright (C) 2026 Carl Alcott
+
+Released under the [GNU General Public License v3.0 or later](LICENSE).
