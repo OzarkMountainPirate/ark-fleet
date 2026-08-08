@@ -86,6 +86,18 @@ ark_rate_multiplier: 1
 # new levels:  gamectl rcon <instance> "DestroyWildDinos"
 ark_rates: {}
 
+# --- Level caps ----------------------------------------------------------------
+# 0 = ARK defaults (player 105). Raising these regenerates the XP ramps and the
+# per-level engram lines in Game.ini -- a few hundred lines, generated, never
+# hand-edited. Leave HEADROOM: ascension (+15) and chibi levels stack on top of
+# the cap, so a "190" server usually declares ~205.
+# These do NOT affect WILD dino levels: wild max = OverrideOfficialDifficulty x 30,
+# set via ark_rates (e.g. OverrideOfficialDifficulty: 10.0 -> wild 300).
+ark_player_max_level: 0
+ark_dino_max_level: 0
+# ark_level_xp_step / ark_level_engram_points tune the curve and engram grant;
+# see roles/gamectl/defaults/main.yml for defaults.
+
 # --- Weekly maintenance (ark_update) -----------------------------------------
 # Sunday window: RCON countdown broadcasts, gamectl update (branch-pinned),
 # OS full-upgrade, reboot only if the OS requires it. Orders itself after the
@@ -127,8 +139,8 @@ ark_retire_removes_data: true
 # gamectl deploys from its upstream repo at this ref. Bump deliberately;
 # a tag or commit SHA keeps deploys reproducible. Optional sha256 pin:
 #   curl -sL <raw-url-at-ref> | sha256sum
-gamectl_version: "v1.6.3"
-gamectl_checksum: "096534397e5ad77b1020f61fa0a32cc8f5cd202e56d2b65516b08dcfadad3ab8"
+gamectl_version: "main"        # e.g. "v1.1" or a full commit SHA
+gamectl_checksum: ""
 
 # Steam beta branch for the ARK server (empty = live/default). Example:
 # "preaquatica" pins servers to the pre-Aquatica release (358.x) — required

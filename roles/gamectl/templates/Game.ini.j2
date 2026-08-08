@@ -3,9 +3,42 @@
     ARK rewrites that file on shutdown and strips ';' comments, so the task
     would report changed on every run and bounce the cluster. The role stages
     this to {{ ark_root }}/.managed/ and installs it only when the staged
-    content actually changes. -#}
+    content actually changes.
+
+    LEVEL CAPS: ORDER IS LOAD-BEARING. ARK reads the FIRST
+    LevelExperienceRampOverrides as the PLAYER ramp and the SECOND as the
+    TAMED DINO ramp -- they are not named. Do not reorder these blocks.
+    Wild dino levels are NOT set here; they come from OverrideOfficialDifficulty
+    (x30 = max wild level), which the rate engine emits as a launch option. -#}
 ; MANAGED BY ANSIBLE (ark-fleet rate engine) -- do not edit by hand.
 ; Rendered from ark_rate_multiplier={{ ark_rate_multiplier }} + ark_rates overrides.
 [/script/shootergame.shootergamemode]
 {% for k, v in gamectl_rates.items() | sort if v.file == 'game' %}{{ k }}={{ v.value }}
 {% endfor %}
+{% if ark_player_max_level | int > 0 %}
+{#- cumulative XP curve: xp(n) = step * n^2, monotonic by construction.
+    On a boosted server the curve SHAPE is nearly irrelevant (players outrun
+    it); what matters is that the ramp is monotonic and that the Override
+    below is >= the final entry, or the last levels are unreachable. -#}
+{%- set p = namespace(e=[]) -%}
+{%- for n in range(1, ark_player_max_level | int) -%}
+{%- set _ = p.e.append('ExperiencePointsForLevel[' ~ (n - 1) ~ ']=' ~ (ark_level_xp_step | int * n * n)) -%}
+{%- endfor %}
+OverrideMaxExperiencePointsPlayer={{ ark_level_xp_step | int * (ark_player_max_level | int - 1) ** 2 }}
+LevelExperienceRampOverrides=({{ p.e | join(',') }})
+{% endif %}
+{% if ark_dino_max_level | int > 0 %}
+{%- set d = namespace(e=[]) -%}
+{%- for n in range(1, ark_dino_max_level | int) -%}
+{%- set _ = d.e.append('ExperiencePointsForLevel[' ~ (n - 1) ~ ']=' ~ (ark_level_xp_step | int * n * n)) -%}
+{%- endfor %}
+OverrideMaxExperiencePointsDino={{ ark_level_xp_step | int * (ark_dino_max_level | int - 1) ** 2 }}
+LevelExperienceRampOverrides=({{ d.e | join(',') }})
+{% endif %}
+{% if ark_player_max_level | int > 0 %}
+{#- ARK needs one engram-points line PER LEVEL or the level is not grantable,
+    even when the value is 0. Level 1 gets nothing. -#}
+OverridePlayerLevelEngramPoints=0
+{% for n in range(2, ark_player_max_level | int + 1) %}OverridePlayerLevelEngramPoints={{ ark_level_engram_points }}
+{% endfor %}
+{% endif %}

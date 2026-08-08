@@ -25,11 +25,11 @@ methodology being practiced.
 
 ## Topology
 
-```text
+```
         Router/firewall (192.168.1.1)       ── port-forwards game+query UDP ──┐
-                                                                              │
-  Host #1  acheron  192.168.1.21   ark@ragnarok       (Ragnarok)  ◄───────────┤
-  Host #2  cocytus  192.168.1.22   ark@fjordur        (Fjordur)   ◄───────────┘
+                                                                            │
+  Host #1  acheron  192.168.1.21   ark@crystalisles   (CrystalIsles)  ◄─────┤
+  Host #2  cocytus  192.168.1.22   ark@fjordur        (Fjordur)       ◄─────┘
 
   Both mount the SAME cluster dir over NFS  ──►  a NAS (NFS server, 192.168.1.15)
      /opt/ark/cluster  =  192.168.1.15:/mnt/tank/ark/cluster
@@ -38,11 +38,12 @@ methodology being practiced.
 One map per box, one shared `CLUSTER_ID`. The **shared NFS cluster directory is
 load-bearing**: ARK writes cross-server transfer data to `ARK_ROOT/cluster`, and
 on a multi-host cluster that directory must be the same storage on both hosts or
-uploads on one map never appear on the other.
+uploads on one map never appear on the other. That's the single thing most
+homelab ARK clusters get wrong.
 
 ## Layout
 
-```text
+```
 netboot/                 reusable PXE stack: dnsmasq proxyDHCP + TFTP + HTTP (no USB)
 bootstrap/               the Debian 13 preseed (served by netboot) + USB/ISO fallback
 ansible.cfg              vault password file, sudo, inventory path
@@ -124,7 +125,6 @@ ansible ark_fleet -a "gamectl status"                  # fleet status + restart 
 ansible ark_fleet -a "gamectl stop all"                # then update, then sync
 ansible ark_fleet -B 7200 -P 60 -a "gamectl update"    # patch template (long)
 ```
-
 RCON, mods, and per-instance control are all `gamectl` on the box; Ansible only
 owns provisioning + config + lifecycle timers.
 
@@ -135,7 +135,7 @@ inventory only declares which maps each host runs:
 
 ```yaml
 acheron:
-  ark_maps: [Ragnarok, Fjordur]
+  ark_maps: [Ragnarok, Valguero]
 ```
 
 - **Add a map:** add its name, run the play. Instance is created from the
@@ -164,6 +164,13 @@ acheron:
   stop -> re-download on the new branch (large) -> sync -> start. **Saves do
   not survive a branch rollback** — wipe `SavedArks` and the cluster dir after
   moving to an older branch. Client and server major versions must match.
+- **Level caps:** `ark_player_max_level` / `ark_dino_max_level` regenerate the
+  `LevelExperienceRampOverrides` ramps and the per-level engram lines in
+  `Game.ini`. ARK identifies the two ramps **by position, not by name** — first
+  is players, second is tamed dinos — so the template's ordering is
+  load-bearing. Budget headroom: ascension and chibi levels stack on top of the
+  cap. Wild dino levels are a different setting entirely
+  (`OverrideOfficialDifficulty` x 30, via `ark_rates`).
 - **Mods:** the global `mods` list declares Workshop IDs (order = load order).
   The play pre-installs them into the template via `gamectl mods` — steamcmd
   download, `.z` extraction, `.mod` generation (ported from ark-server-tools) —
@@ -195,6 +202,10 @@ ansible-playbook site.yml
 $EDITOR group_vars/all/main.yml         # ark_rate_multiplier: 300
 ansible-playbook site.yml
 ansible acheron -a 'gamectl rcon ragnarok "DestroyWildDinos"'   # per map, if difficulty changed
+
+# raise the level cap (players to 205, tamed dinos to 450)
+$EDITOR group_vars/all/main.yml         # ark_player_max_level / ark_dino_max_level
+ansible-playbook site.yml               # regenerates Game.ini, restarts
 
 # add mods (safe) — order in the list IS load order
 $EDITOR group_vars/all/main.yml         # mods: [839162288, ...]
@@ -251,16 +262,11 @@ Actions — no self-hosted infrastructure:
   inline.
 - **shellcheck** — static analysis for the shell scripts (`netboot/setup.sh`,
   `bootstrap/build-iso.sh`): quoting bugs, unset variables, portability traps.
-  `gamectl` itself is not vendored here — it is fetched at a pinned tag and
-  checksum-verified at deploy time, and linted in its own repo.
+  Config in `.shellcheckrc`. `gamectl` itself is not vendored here — it is
+  fetched at a pinned tag and checksum-verified at deploy time, and linted in
+  its own repo.
 
 There's nothing to compile, so lint IS the test suite: it can't prove a deploy
 will succeed, but it catches the class of typo that would otherwise only
 surface mid-playbook-run against a live host. Red X on a commit = don't deploy
 that commit.
-
-## License
-
-Copyright (C) 2026 Carl Alcott
-
-Released under the [GNU General Public License v3.0 or later](LICENSE).
