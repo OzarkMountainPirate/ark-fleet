@@ -69,6 +69,6 @@ ark_player_max_level: 0
 ark_dino_max_level: 0
 # Cumulative XP for level n is ark_level_xp_step * n^2. On a boosted server the
 # curve shape barely matters; monotonicity is what ARK requires.
-ark_level_xp_step: 500
+ark_level_xp_step: 500        # cumulative XP for level n = step * n^2
 # Engram points granted per level above 1.
-ark_level_engram_points: 25
+ark_level_engram_points: 25   # engram points granted per level above 1
