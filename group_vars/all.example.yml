@@ -137,10 +137,19 @@ ark_retire_removes_data: true
 
 # --- gamectl source pin -------------------------------------------------------
 # gamectl deploys from its upstream repo at this ref. Bump deliberately;
-# a tag or commit SHA keeps deploys reproducible. Optional sha256 pin:
-#   curl -sL <raw-url-at-ref> | sha256sum
-gamectl_version: "v1.6.3"        # e.g. "v1.1" or a full commit SHA
-gamectl_checksum: ""
+# a tag or commit SHA keeps deploys reproducible.
+#
+# Leave BOTH of these commented out to inherit the role defaults, which pin the
+# tag AND its sha256. Setting gamectl_checksum to "" here does NOT mean "use the
+# default" -- group_vars outrank role defaults, so an empty value silently turns
+# checksum verification OFF while the README still promises it.
+#
+# Only uncomment these to pin a DIFFERENT ref, and if you do, supply the real
+# digest with it:
+#   curl -sL https://raw.githubusercontent.com/OzarkMountainPirate/utilities/<ref>/bash-scripts/ark-ase/gamectl | sha256sum
+#
+# gamectl_version:  "v1.6.3"       # e.g. "v1.1" or a full commit SHA
+# gamectl_checksum: "<sha256 of gamectl at the ref above>"
 
 # Steam beta branch for the ARK server (empty = live/default). Example:
 # "preaquatica" pins servers to the pre-Aquatica release (358.x) — required
