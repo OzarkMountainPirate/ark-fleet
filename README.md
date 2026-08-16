@@ -25,10 +25,10 @@ methodology being practiced.
 
 ## Topology
 
-```
+```text
         Router/firewall (192.168.1.1)       ── port-forwards game+query UDP ──┐
                                                                             │
-  Host #1  acheron  192.168.1.21   ark@crystalisles   (CrystalIsles)  ◄─────┤
+  Host #1  acheron  192.168.1.21   ark@ragnarok       (Ragnarok)      ◄─────┤
   Host #2  cocytus  192.168.1.22   ark@fjordur        (Fjordur)       ◄─────┘
 
   Both mount the SAME cluster dir over NFS  ──►  a NAS (NFS server, 192.168.1.15)
@@ -43,14 +43,18 @@ homelab ARK clusters get wrong.
 
 ## Layout
 
-```
+```text
 netboot/                 reusable PXE stack: dnsmasq proxyDHCP + TFTP + HTTP (no USB)
 bootstrap/               the Debian 13 preseed (served by netboot) + USB/ISO fallback
-ansible.cfg              vault password file, sudo, inventory path
+ansible.cfg              sudo, inventory path (NO vault password file — see quickstart step 2)
 inventory/hosts.yml      the hosts + each host's ark_maps (ports derive from ark_port_map)
 group_vars/all/          live config dir: main.yml (settings) + vault.yml (secrets)
 group_vars/*.example.yml committed templates for the files in group_vars/all/
 site.yml                 the playbook
+requirements.yml         galaxy collections (quickstart step 0)
+host_vars/               optional per-host overrides
+TROUBLESHOOTING.md       symptom -> cause -> fix
+check-docs.py            documentation drift check (run by CI)
 roles/
   static_net/            pins each host's IP from the inventory (no DHCP reservations)
   common/                hostname, base pkgs, unattended-upgrades, ufw (game/query UDP; RCON LAN-only)
@@ -84,8 +88,10 @@ in [`bootstrap/README.md`](bootstrap/README.md) if you ever want it.)
 ## Quickstart
 
 ```bash
-# 0. collections — ONLY needed if you installed bare ansible-core.
-#    The full 'ansible' package (apt or pip) already bundles these; skip if so.
+# 0. collections — always run this. The full 'ansible' package bundles
+#    community.general and ansible.posix, but NOT arensb.truenas, which the
+#    nas_ark_exports play needs. (See .github/workflows/lint.yml, which
+#    installs it separately for the same reason.)
 ansible-galaxy collection install -r requirements.yml
 
 # 1. environment config (live copies are gitignored)
@@ -125,6 +131,7 @@ ansible ark_fleet -a "gamectl status"                  # fleet status + restart 
 ansible ark_fleet -a "gamectl stop all"                # then update, then sync
 ansible ark_fleet -B 7200 -P 60 -a "gamectl update"    # patch template (long)
 ```
+
 RCON, mods, and per-instance control are all `gamectl` on the box; Ansible only
 owns provisioning + config + lifecycle timers.
 
