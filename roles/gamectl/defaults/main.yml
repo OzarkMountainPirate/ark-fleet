@@ -7,11 +7,11 @@ gamectl_install_timeout: 3600
 # a deliberate one-line pin bump (reproducibility). Use a tag or commit SHA —
 # "main" works but makes deploys non-reproducible; pin for real use.
 gamectl_repo_raw: "https://raw.githubusercontent.com/OzarkMountainPirate/utilities"
-gamectl_version: "v1.6.3"
+gamectl_version: "v1.6.4"
 gamectl_path: "bash-scripts/ark-ase/gamectl"
 # Optional but recommended with a pin: sha256 of the pinned file.
 #   curl -sL <raw-url-at-pin> | sha256sum
-gamectl_checksum: "096534397e5ad77b1020f61fa0a32cc8f5cd202e56d2b65516b08dcfadad3ab8"
+gamectl_checksum: "e2239336c1e389d2ef0dfb26161bdb7c3afc89c6bfd1dd94cd8fa324f47c650e"
 
 # Scale-down behavior; see group_vars. Backup always runs first regardless.
 ark_retire_removes_data: true
