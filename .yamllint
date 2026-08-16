@@ -8,3 +8,11 @@ rules:
   comments: { min-spaces-from-content: 1 }
   document-start: disable
   braces: { max-spaces-inside: 1 }
+  # Required by ansible-lint: without these three it warns on every run and
+  # disables --fix. forbid-implicit-octal is the one that matters -- an
+  # unquoted mode: 0644 is parsed as decimal 644 and silently sets the wrong
+  # permissions. Every mode in this repo is already a quoted string.
+  comments-indentation: false
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
